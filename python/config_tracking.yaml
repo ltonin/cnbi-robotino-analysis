@@ -1,0 +1,16 @@
+subject: aj1
+date: 20180312
+ranges:
+    lower: [154, 99, 70]
+    upper: [255, 255, 255]
+
+folderpath:
+    calibration: '/mnt/data/Research/micontinuous/aj1_micontinuous/20180312/tracking/calibration/'
+    tracking:    '/mnt/data/Research/micontinuous/aj1_micontinuous/20180312/tracking/'
+    robot:       '/mnt/data/Research/micontinuous/aj1_micontinuous/20180312/robot/'
+
+rostopics:
+    video: '/kinect2/hd/image_color/compressed'
+    tid:   '/rostid_cnbi2ros'
+    tic:   '/rostic_cnbi2ros'
+    odom:  '/odom'
