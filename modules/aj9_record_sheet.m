@@ -1,37 +1,37 @@
 clearvars; clc;
 
-subject = 'aj1';
+subject = 'aj9';
 savedir     = 'analysis/robot';
 
 % Create analysis directory
 util_mkdir('./', savedir);
 
 % Target - Reached results
-Target(:, 1)   = [1 5 3 3 4 2 5 4 2 1];
-Reached(:, 1)  = [1 0 1 1 1 1 0 1 1 1];
-Target(:, 2)   = [2 1 3 4 1 5 2 4 5 3];
-Reached(:, 2)  = [0 0 1 1 1 0 1 1 0 1];
-Target(:, 3)   = [1 5 4 2 5 3 1 4 2 3];
+Target(:, 1)   = [5 5 3 1 2 3 2 1 4 4];
+Reached(:, 1)  = [1 1 1 1 1 1 1 1 1 1];
+Target(:, 2)   = [4 4 2 5 1 2 5 1 3 3];
+Reached(:, 2)  = [1 1 1 1 1 1 1 1 1 1];
+Target(:, 3)   = [4 5 1 4 3 2 2 3 1 5];
 Reached(:, 3)  = [1 1 1 1 1 1 1 1 1 1];
-Target(:, 4)   = [4 3 5 1 1 4 3 2 5 2];
-Reached(:, 4)  = [1 1 1 1 1 0 1 1 0 1];
-Target(:, 5)   = [1 5 5 3 4 2 1 4 3 2];
+Target(:, 4)   = [2 2 3 4 1 5 3 1 4 5];
+Reached(:, 4)  = [1 1 1 1 1 1 1 1 1 1];
+Target(:, 5)   = [4 1 5 2 2 3 1 5 4 3];
 Reached(:, 5)  = [1 1 1 1 1 1 1 1 1 1];
-Target(:, 6)   = [3 3 2 1 1 2 4 5 5 4];
-Reached(:, 6)  = [1 1 1 1 1 1 1 0 0 0];
-Target(:, 7)   = [1 3 5 3 2 4 1 4 5 2];
-Reached(:, 7)  = [1 0 0 1 1 0 0 0 0 1];
-Target(:, 8)   = [1 4 2 4 5 1 3 3 2 5];
+Target(:, 6)   = [5 4 2 1 2 3 1 5 3 4];
+Reached(:, 6)  = [1 1 1 1 1 1 1 1 1 1];
+Target(:, 7)   = [3 1 4 5 2 3 1 5 2 4];
+Reached(:, 7)  = [1 1 1 1 1 1 1 1 1 1];
+Target(:, 8)   = [3 5 4 1 5 2 3 4 2 1];
 Reached(:, 8)  = [1 1 1 1 1 1 1 1 1 1];
-Target(:, 9)   = [3 2 4 2 5 1 3 5 4 1];
+Target(:, 9)   = [5 3 1 4 1 2 3 2 4 5];
 Reached(:, 9)  = [1 1 1 1 1 1 1 1 1 1];
-Target(:, 10)  = [2 4 3 4 1 2 3 5 1 5];
+Target(:, 10)  = [2 5 3 4 2 1 5 1 3 4];
 Reached(:, 10) = [1 1 1 1 1 1 1 1 1 1];
 
 [NumTargets, NumRuns] = size(Target);
 
 % Integrator type
-IntegratorType = [1 2 2 1 2 1 1 2 2 1];
+IntegratorType = [1 2 1 2 2 1 2 2 1 1];
 IntegratorName = {'ema', 'dynamic'};
 
 % Day

@@ -21,11 +21,7 @@ YAML configuration file must be provided with the followinf fields:
 See the provided yaml configuration template file for more details
 
 Call program as follows:
-    -d       <directory where the frames are stored>
-
-    --config <optional: the yaml configuration file, by default it looks for
-              config_calibration.yaml in the same directory where the frames are
-              stored>
+    --config  the yaml configuration file (fullpath)
 
     -c       <optional: the camera type, by default kinect2>
 
@@ -110,11 +106,7 @@ def length(a):
 
 ################ Argument Parser #######################
 ap = argparse.ArgumentParser()
-ap.add_argument("--config", default='config_calibration.yaml', 
-                help="Configuration filename (default: DIRECTORY/config_calibration.yaml)")
-ap.add_argument("-d", dest='directory',
-                help="Directory where images for calibration are stored", 
-                required=True)
+ap.add_argument("--config", help="Configuration filename", required=True)
 ap.add_argument("-c", default='kinect2', dest='cam_type',
                 help="Type of the camera (e.g., kinect1 or kinect2). The matrix\
                 and the distortion coefficient should be present in the yaml \
@@ -123,15 +115,15 @@ args = vars(ap.parse_args())
 
 ############### Importing configuration ################
 cfgfile    = args['config']
-directory  = args['directory']
 cam_type   = args['cam_type']
 
-config = import_configuration(directory + cfgfile) 
+config = import_configuration(cfgfile) 
 
 subject    = config['subject']
 date       = config['date']
 rangeLower = tuple(config['ranges']['lower'])
 rangeUpper = tuple(config['ranges']['upper'])
+directory  = config['folderpath']['calibration']
 
 print("[config] - Subject: " + subject)
 print("[config] - Date: " + str(date))

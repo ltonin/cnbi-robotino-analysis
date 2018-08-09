@@ -1,6 +1,6 @@
 clearvars; clc;
 
-subject = 'aj1';
+subject = 'aj9';
 
 datapath = 'analysis/robot/';
 savedir  = 'analysis/robot/';

@@ -34,6 +34,7 @@ import matplotlib.pyplot as plt
 import os
 import yaml
 import fnmatch
+import pdb
 
 
 n_tasks = 7
@@ -207,7 +208,10 @@ def get_video_trajectories(vidbag, wrd_start, pnt_start, starttimes, endtimes, t
             img = bridge.compressed_imgmsg_to_cv2(msg)
             im_location = track_robot(img, img_old)
             if im_location == (10000,10000):
-                print("[warning] - No object detected at t={}".format(time))
+                print("[warning] - No object detected at t={}. Adding nan".format(time))
+                #world_old = (float('nan'), float('nan'))
+                world_coordinates = (float('nan'), float('nan'))
+                trajectory.append(list(world_coordinates))
             else:
                 #Check if im_location "jumps"    
                 world_coordinates = transform_image_to_world(im_location,
@@ -215,11 +219,18 @@ def get_video_trajectories(vidbag, wrd_start, pnt_start, starttimes, endtimes, t
                 #print(im_location)
                 #print(world_coordinates)
                 if distance(world_coordinates,world_old) >= max_dist:
-                    print("[warning] - Large distance between new and old location: {} vs {}- ignoring point (t: {})".format(world_coordinates,world_old, t))
+                    print("[warning] - Large distance between new and old location: {} vs {}- nan point (t: {})".format(world_coordinates,world_old, t))
                     world_coordinates = world_old
-                world_old = world_coordinates
-                img_old = im_location
-            trajectory.append(list(world_old))
+                    world_old = world_coordinates
+                    img_old = im_location
+                    trajectory.append(list((float('nan'), float('nan'))))
+                else:
+                    #world_old = world_coordinates
+                    #img_old = im_location
+                    world_old = world_coordinates
+                    img_old = im_location
+                    trajectory.append(list(world_old))
+            #trajectory.append(list(world_old))
                        
         if (time > endtimes[i] and in_trial):
             in_trial = False
@@ -307,6 +318,7 @@ for i, file in enumerate(track_list):
 # Initialize CV bridge
 bridge = cv_bridge.CvBridge()
 
+
 for run, (bfile, vfile) in enumerate(zip(robot_list, track_list)):
     
     print("[tracking] - Starting run {}: {}".format(run+1, vfile))
@@ -318,10 +330,30 @@ for run, (bfile, vfile) in enumerate(zip(robot_list, track_list)):
     vidbag  = rosbag.Bag(videobag_path)
 
     starttimes, endtimes, tasks, probabilities, odometry = analyze_infobag(infobag, wrd_start, topic_tid, topic_tic, topic_odom, run=run)
+
     video_trajectories = get_video_trajectories(vidbag, wrd_start, pnt_start, starttimes, endtimes, topic_track)
 
-    v = np.array([np.array(x) for x in video_trajectories])
+    v = []
+    trIdx = []
+    tskIdx = []
+    for i, x in enumerate(video_trajectories):
+        v.extend(x)
+        cid=np.empty(len(x))
+        cid.fill(i)
+        trIdx.extend(cid)
+        ctsk = np.empty(len(x))
+        ctsk.fill(tasks[i])
+        tskIdx.extend(ctsk)
 
+    #v = np.array([np.array(x) for x in video_trajectories])
+    
+    v = np.array(v)
+    trIdx = np.array(trIdx, ndmin=2).T
+    tskIdx = np.array(tskIdx, ndmin=2).T
+
+    data = np.concatenate((v, trIdx, tskIdx), 1)
+
+    #pdb.set_trace()
     # Save trajectory
     save_dir = track_dir + "trajectories"
     if not os.path.exists(save_dir):
@@ -329,9 +361,11 @@ for run, (bfile, vfile) in enumerate(zip(robot_list, track_list)):
         os.makedirs(save_dir)
 
     tfile, text = os.path.splitext(vfile)
-    save_path = os.path.join(save_dir, tfile + ".npy")
+    #save_path = os.path.join(save_dir, tfile + ".npy")
+    save_path = os.path.join(save_dir, tfile + ".csv")
     
     print("[out] - Saving trajectory in: " + save_path)
-    np.save(save_path, v)
+    #np.save(save_path, v)
+    np.savetxt(save_path, data, "%.3f")
 
 

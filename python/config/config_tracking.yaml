@@ -4,8 +4,15 @@ ranges:
     lower: [154, 99, 70]
     upper: [255, 255, 255]
 
-# Constant definitions for calibration (not supposed to be changed)
+folderpath:
+    calibration: '/mnt/data/Research/micontinuous/aj1_micontinuous/20180312/tracking/calibration/'
+    tracking:    '/mnt/data/Research/micontinuous/aj1_micontinuous/20180312/tracking/'
+    robot:       '/mnt/data/Research/micontinuous/aj1_micontinuous/20180312/robot/'
+
 calibration: 
+    file: '/mnt/data/Research/micontinuous/aj1_micontinuous/20180312/tracking/20180312_morning_calibration.bag'
+
+# Constant definitions for calibration and tracking (not supposed to be changed)
     coordinates:
         points:
             - [450, 0, 0]           # P0
@@ -44,4 +51,9 @@ calibration:
             distortion: [0.2450541033705403, -0.3901175680464315, 
                          -0.002732452946342192, 0.009749225533570473, 0]
 
-    
+
+rostopics:
+    video: '/kinect2/hd/image_color/compressed'
+    tid:   '/rostid_cnbi2ros'
+    tic:   '/rostic_cnbi2ros'
+    odom:  '/odom'

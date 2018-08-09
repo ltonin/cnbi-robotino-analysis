@@ -1,6 +1,6 @@
 clearvars; clc;
 
-subject = 'aj1';
+subject = 'aj9';
 
 pattern  = [subject '*.online.mi.mi_bhbf.*.mobile'];
 datapath = 'analysis/robot/odometry/';
