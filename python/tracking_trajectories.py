@@ -64,6 +64,13 @@ def distance(a, b):
     return np.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2)
 
 def track_robot(frame, previous=None):
+  
+    rows, cols, channels = frame.shape
+    roi = np.zeros(frame.shape, dtype="uint8") 
+    roi = cv2.rectangle(roi, (1760, 900), (1920, 1080), (255, 255, 255), -1)
+    roi = cv2.bitwise_not(roi)
+    frame = cv2.bitwise_and(frame, roi)
+   
     # blur frame and convert it to the HSV
     # color space
     # blurred = cv2.GaussianBlur(frame, (11, 11), 0)
@@ -75,6 +82,10 @@ def track_robot(frame, previous=None):
     mask = cv2.inRange(hsv, rangeLower, rangeUpper)
     mask = cv2.erode(mask, None, iterations=2)
     mask = cv2.dilate(mask, None, iterations=2)
+    
+    #cv2.namedWindow("Mask", cv2.WINDOW_NORMAL)
+    #cv2.imshow("Mask", mask)
+    #cv2.waitKey(0)
 
     # find contours in the mask and initialize the current
     # (x, y) center of the ball
