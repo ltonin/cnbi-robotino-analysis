@@ -1,6 +1,6 @@
 clearvars; clc;
 
-subject = 'aj1';
+subject = 'aj4';
 
 pattern         = [subject '*.online.mi.mi_bhbf.*.mobile'];
 datapath        = 'analysis/robot/tracking/';
@@ -89,17 +89,17 @@ end
 fig1 = figure;
 fig_set_position(fig1, 'Top');
 for iId = 1:NumIntegrators
-    cindex  = Ik == Integrators(iId) & Xk == true;
+    cindex  = Ik == Integrators(iId);% & Xk == true;
     
     subplot(1, 2, iId);
-    imagesc(flipud(mean(HitMap(:, :, cindex), 3)'), [0 0.1]);
+    imagesc(flipud(nanmean(HitMap(:, :, cindex), 3)'), [0 0.1]);
     
     % Plotting average for correct
     hold on;
     for tgId = 1:NumTargets
         cindex = Ik == Integrators(iId) & Ck == Targets(tgId); 
         
-        cpath = mean(rtracking(:, :, cindex & Xk == true), 3); 
+        cpath = nanmean(rtracking(:, :, cindex & Xk == true), 3); 
         cpath(:, 2) = abs(cpath(:, 2) - FieldSize(2));
         cpath = ceil(cpath/MapResolution);
         if isempty(cpath) == false
@@ -125,10 +125,10 @@ for iId = 1:NumIntegrators
         cindex = Ik == Integrators(iId)  & Ck == Targets(tgId);
         
         subplot(2, NumTargets, tgId + NumTargets*(iId-1));
-        imagesc(flipud(mean(HitMap(:, :, cindex), 3)'), [0 0.5]);
+        imagesc(flipud(nanmean(HitMap(:, :, cindex), 3)'), [0 0.5]);
         
         hold on;
-        cpath = mean(rtracking(:, :, cindex & Xk == true), 3); 
+        cpath = nanmean(rtracking(:, :, cindex & Xk == true), 3); 
         cpath(:, 2) = abs(cpath(:, 2) - FieldSize(2));
         cpath = ceil(cpath/MapResolution);
         if isempty(cpath) == false
@@ -177,7 +177,7 @@ for iId = 1:NumIntegrators
     for tgId = 1:NumTargets
         cindex = Ik == Integrators(iId) & Ck == Targets(tgId); 
         
-        cpath = mean(rtracking(:, :, cindex & Xk == true), 3); 
+        cpath = nanmean(rtracking(:, :, cindex & Xk == true), 3); 
         
         if isempty(cpath) == false
             plot(cpath(:, 1), cpath(:, 2), 'ko', 'MarkerSize', 1);
