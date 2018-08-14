@@ -67,7 +67,7 @@ def track_robot(frame, previous=None):
   
     rows, cols, channels = frame.shape
     roi = np.zeros(frame.shape, dtype="uint8") 
-    roi = cv2.rectangle(roi, (1760, 900), (1920, 1080), (255, 255, 255), -1)
+    roi = cv2.rectangle(roi, (1660, 900), (1920, 1080), (255, 255, 255), -1)
     roi = cv2.bitwise_not(roi)
     frame = cv2.bitwise_and(frame, roi)
    

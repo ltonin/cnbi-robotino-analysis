@@ -1,6 +1,6 @@
 clearvars; clc;
 
-subject = 'aj4';
+subject = 'ai8';
 
 pattern         = [subject '*.online.mi.mi_bhbf.*.mobile'];
 datapath        = 'analysis/robot/tracking/';
