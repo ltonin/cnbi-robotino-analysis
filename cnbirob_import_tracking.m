@@ -1,6 +1,6 @@
 clearvars; clc;
 
-subject = 'ai8';
+subject = 'ai7';
 
 pattern  = '*.online.mi.mi_bhbf.*.mobile.csv';
 folder   = 'tracking/trajectories';

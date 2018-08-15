@@ -1,10 +1,10 @@
 clearvars; clc;
 
-subject = 'ai8';
+subject = 'ai6';
 
 pattern         = [subject '*.online.mi.mi_bhbf.*.mobile'];
 datapath        = 'analysis/robot/tracking/';
-savedir         = 'analysis/robot/tracking/';
+savedir         = 'analysis/robot/';
 IntegratorName  = {'discrete', 'continuous'};
 TargetName      = {'Target1', 'Target2', 'Target3', 'Target4', 'Target5'};
 FieldSize       = [900 600];    % [cm]
@@ -16,6 +16,8 @@ TargetPos(4, :) = [662 362];
 TargetPos(5, :) = [750 150];
 TargetRadius    = 25;           % [cm]
 
+DoPlot = false;
+
 mTargetPos    = ceil(TargetPos/MapResolution);
 mTargetRadius = ceil(TargetRadius/MapResolution);
 mFieldSize    = ceil(FieldSize/MapResolution);
@@ -24,27 +26,30 @@ mFieldSize    = ceil(FieldSize/MapResolution);
 files = util_getfile(datapath, '.mat', pattern);
 
 %% Concatenate all files
-util_bdisp('[io] - Concatenate tracking data');
-[tracking, labels] = cnbirob_concatenate_tracking_data(files, 'tracking');
+util_bdisp(['[io] - Concatenate tracking data for subject ' subject]);
+[tracking, lbls] = cnbirob_concatenate_tracking_data(files, 'tracking');
 
 %% Extracting label information
-Integrators     = unique(labels.Ik);
+util_bdisp('[proc] - Extracting label information');
+Integrators     = unique(lbls.Ik);
 NumIntegrators  = length(Integrators);
-Runs            = unique(labels.Rk);
+Runs            = unique(lbls.Rk);
 NumRuns         = length(Runs);
 NumSamples      = length(tracking);
-Trials          = unique(labels.Tk);
+Trials          = unique(lbls.Tk);
 NumTrials       = length(Trials);
-Days            = unique(labels.Dk);
+Days            = unique(lbls.Dk);
 NumDays         = length(Days);
-Targets         = unique(labels.Ck);
+Targets         = unique(lbls.Ck);
 NumTargets      = length(Targets);
 
 %% Loading target record data
+util_bdisp('[proc] - Loading target record data');
 load(['analysis/robot/' subject '_robot_records.mat']); 
 Xk = records.trial.Xk;
 
 %% Create trial-based label vectors
+util_bdisp('[proc] - Create trial-based label vectors');
 Ik = zeros(NumTrials, 1);
 Rk = zeros(NumTrials, 1);
 Dk = zeros(NumTrials, 1);
@@ -52,40 +57,63 @@ Ck = zeros(NumTrials, 1);
 Tk = zeros(NumTrials, 1);
 
 for trId = 1:NumTrials
-    cidx = find(labels.Tk == Trials(trId), 1);
-    Ik(trId) = labels.Ik(cidx);
-    Rk(trId) = labels.Rk(cidx);
-    Dk(trId) = labels.Dk(cidx);
-    Ck(trId) = labels.Ck(cidx);
+    cidx = find(lbls.Tk == Trials(trId), 1);
+    Ik(trId) = lbls.Ik(cidx);
+    Rk(trId) = lbls.Rk(cidx);
+    Dk(trId) = lbls.Dk(cidx);
+    Ck(trId) = lbls.Ck(cidx);
     Tk(trId) = Trials(trId);
 end
 
 %% Create hit-map from trajectories
+util_bdisp('[proc] - Create hit-map from trajectories');
 HitMap = zeros([mFieldSize NumTrials]);
 
 for trId = 1:NumTrials
-    cindex = labels.Tk == Tk(trId); 
+    cindex = lbls.Tk == Tk(trId); 
     HitMap(:, :, trId) = cnbirob_traj2map(tracking(cindex, :), FieldSize, MapResolution);
 end
 
 %% Create resampled trajectories
-
+util_bdisp('[proc] - Create resampled trajectories');
 maxlength = 0;
 for trId = 1:NumTrials
-    maxlength = max(maxlength, sum(labels.Tk == Trials(trId)));
+    maxlength = max(maxlength, sum(lbls.Tk == Trials(trId)));
 end
 
 rtracking = zeros(maxlength, 2, NumTrials);
 for trId = 1:NumTrials
-    cindex = labels.Tk == Trials(trId);
+    cindex = lbls.Tk == Trials(trId);
     clength = sum(cindex);
     cpath = tracking(cindex, :);
     rtracking(:, :, trId) =  interp1(1:clength, cpath, linspace(1, clength, maxlength));
     
 end
 
+%% Saving subject data
+filename = fullfile(savedir, [subject '_robot_trajectory.mat']);
+util_bdisp(['[out] - Saving subject data in: ' filename]);
+trajectory = tracking;
+labels.sample.Rk = lbls.Rk;
+labels.sample.Ik = lbls.Ik;
+labels.sample.Dk = lbls.Dk;
+labels.sample.Tk = lbls.Tk;
+labels.sample.Ck = lbls.Ck;
+labels.trial.Ik  = Ik;
+labels.trial.Rk  = Rk;
+labels.trial.Dk  = Dk;
+labels.trial.Ck  = Ck;
+labels.trial.Tk  = Tk;
+labels.trial.Xk  = Xk;
+save(filename, 'trajectory', 'labels');
+
 %% Plotting
 
+if DoPlot == false
+    return
+end
+
+util_bdisp('[out] - Plotting subject trajectories');
 fig1 = figure;
 fig_set_position(fig1, 'Top');
 for iId = 1:NumIntegrators

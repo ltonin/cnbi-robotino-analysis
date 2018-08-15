@@ -1,6 +1,6 @@
 clearvars; clc;
 
-subject = 'aj9';
+subject = 'ai7';
 
 datapath = 'analysis/robot/';
 savedir  = 'analysis/robot/';
@@ -11,7 +11,7 @@ load([datapath '/' subject '_robot_records.mat']);
 
 Rk = records.trial.Rk;
 Ik = records.trial.Ik;
-Tk = records.trial.Tk;
+Ck = records.trial.Ck;
 Xk = records.trial.Xk;
 Dk = records.trial.Dk;
 
@@ -24,10 +24,10 @@ NumRuns = length(Runs);
 Integrators = unique(Ik);
 NumIntegrators = length(Integrators);
 
-Targets = unique(Tk);
+Targets = unique(Ck);
 NumTargets = length(Targets);
 
-NumTargetRuns = length(Tk)/NumRuns;
+NumTargetRuns = length(Ck)/NumRuns;
 
 NumRunIntegrators = NumRuns/NumIntegrators;
 
@@ -52,7 +52,7 @@ end
 AccuracyTarget = zeros(NumTargets, NumRuns);
 for rId = 1:NumRuns
     for tId = 1:NumTargets
-        cindex = Tk == Targets(tId) & Rk == Runs(rId);
+        cindex = Ck == Targets(tId) & Rk == Runs(rId);
         AccuracyTarget(tId, rId) = sum(Xk(cindex))./sum(cindex);
     end
 end

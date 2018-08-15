@@ -38,11 +38,12 @@ IntegratorName = {'ema', 'dynamic'};
 DayId = [1 1 2 2 2 2 3 3 3 3];
 
 records.trial.Rk = reshape(repmat(1:10, [NumRuns 1]), NumRuns*NumTargets, 1);
-records.trial.Tk = reshape(Target, numel(Target), 1);
+records.trial.Ck = reshape(Target, numel(Target), 1);
 records.trial.Xk = reshape(Reached, numel(Reached), 1);
 records.trial.Ik = reshape(repmat(IntegratorType, [NumRuns 1]), NumRuns*NumTargets, 1);
 records.trial.Il = IntegratorName;
 records.trial.Dk = reshape(repmat(DayId, [NumRuns 1]), NumRuns*NumTargets, 1);
+records.trial.Tk = (1:NumRuns*NumTargets)';
 
 records.run.Rk = 1:10;
 records.run.Ik = IntegratorType;
