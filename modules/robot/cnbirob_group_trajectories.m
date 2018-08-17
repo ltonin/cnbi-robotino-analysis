@@ -25,6 +25,7 @@ mFieldSize    = ceil(FieldSize/MapResolution);
 NumSubjects = length(sublist);
 
 trajectory = [];
+frechet    = [];
 
 Rk  = []; Ik  = []; Dk  = []; Tk  = []; Ck  = []; Sk  = []; Xk = [];
 sRk = []; sIk = []; sDk = []; sTk = []; sCk = []; sSk = [];
@@ -40,6 +41,8 @@ for sId = 1:NumSubjects
     ctraj = cdata.trajectory;
     
     trajectory = cat(1, trajectory, ctraj);
+    
+    frechet = cat(1, frechet, cdata.frechet);
     
     % Labels 
     
@@ -66,6 +69,12 @@ NumIntegrators = length(Integrators);
 NumTrials      = length(Tk);
 Targets        = unique(Ck);
 NumTargets     = length(Targets);
+Days           = unique(Dk);
+NumDays        = length(Days);
+
+%% Loading manual trajectories
+util_bdisp('[proc] - Loading manual trajectory data');
+manual = load('analysis/robot/00_robot_trajectory.mat'); 
 
 %% Create hit-map from trajectories
 util_bdisp('[proc] - Create hit-map from trajectories');
@@ -92,6 +101,29 @@ for trId = 1:NumTrials
     
 end
 
+%% Create resampled trajectories for manual
+util_bdisp('[proc] - Create resampled trajectories for manual');
+maxlength = 0;
+
+for trId = 1:max(manual.labels.trial.Tk)
+    maxlength = max(maxlength, sum(manual.labels.sample.Tk == manual.labels.trial.Tk(trId)));
+end
+
+ttracking = zeros(maxlength, 2, max(manual.labels.trial.Tk));
+for trId = 1:max(manual.labels.trial.Tk)
+    cindex = manual.labels.sample.Tk == manual.labels.trial.Tk(trId);
+    clength = sum(cindex);
+    cpath = manual.trajectory(cindex, :);
+    ttracking(:, :, trId) =  interp1(1:clength, cpath, linspace(1, clength, maxlength));
+    
+end
+
+mtracking = zeros(maxlength, 2, NumTargets);
+for tgId = 1:NumTargets
+    cindex = manual.labels.trial.Ck == Targets(tgId);
+    mtracking(:, :, tgId) = nanmean(ttracking(:, :, cindex), 3);
+end
+
 %% Find the minimum distance from target
 target_mindist = zeros(NumTrials, 1);
 target_maxdist = zeros(NumTrials, 1);
@@ -103,9 +135,33 @@ for trId = 1:NumTrials
    target_maxdist(trId) = nanmax(cdistances);
 end
 
+%% Frechet distance evolution over days
+util_bdisp('[proc] - Computing evolution over days of Frechet distance');
+
+frechet_evo_avg = zeros(NumTargets, NumDays, NumIntegrators); 
+frechet_evo_std = zeros(NumTargets, NumDays, NumIntegrators); 
+npoints = zeros(NumTargets, NumDays, NumIntegrators); 
+for tgId = 1:NumTargets 
+    for dId = 1:NumDays
+        for iId = 1:NumIntegrators
+            cindex = Ck == Targets(tgId) & Xk == 1 & Dk == Days(dId) & Ik == iId; 
+            frechet_evo_avg(tgId, dId, iId) = nanmean(frechet(cindex)); 
+            frechet_evo_std(tgId, dId, iId) = nanstd(frechet(cindex)); 
+            npoints(tgId, dId, iId) = sum(cindex);
+        end
+    end
+end
+
+%% Statistics
+util_bdisp('[proc] - Computing statistics');
+frechet_pval = zeros(NumTargets, 1);
+for tgId = 1:NumTargets
+    frechet_pval(tgId) = ranksum(frechet(Xk == 1 & Ik == 1 & Ck == tgId), frechet(Xk == 1 & Ik == 2 & Ck == tgId));
+    
+    disp(['[stat] - Wilcoxon test on frechet distance for target ' num2str(tgId) ': p=' num2str(frechet_pval(tgId),3)]); 
+end
 
 %% Plotting
-
 util_bdisp('[out] - Plotting trajectories');
 
 %% Figure 1 - Heat map average
@@ -127,6 +183,19 @@ for iId = 1:NumIntegrators
         
         if isempty(cpath) == false
             plot(cpath(:, 1), cpath(:, 2), 'ko', 'MarkerSize', 0.1);
+        end
+        
+    end
+    hold off;
+    
+     % Plotting manual
+    hold on;
+    for tgId = 1:NumTargets
+        cpath = mtracking(:, :, tgId); 
+        cpath(:, 2) = abs(cpath(:, 2) - FieldSize(2));
+        cpath = cpath/MapResolution;
+        if isempty(cpath) == false
+            plot(cpath(:, 1), cpath(:, 2), 'k--', 'MarkerSize', 1);
         end
         
     end
@@ -160,6 +229,16 @@ for iId = 1:NumIntegrators
         end
         hold off;
         
+        % Plotting manual
+        hold on;
+        cmpath = mtracking(:, :, tgId); 
+        cmpath(:, 2) = abs(cmpath(:, 2) - FieldSize(2));
+        cmpath = cmpath/MapResolution;
+        if isempty(cmpath) == false
+            plot(cmpath(:, 1), cmpath(:, 2), 'k--', 'MarkerSize', 1);
+        end
+        hold off;
+        
         axis image
         xlabel('[cm]');
         ylabel('[cm]');
@@ -187,14 +266,17 @@ for iId = 1:NumIntegrators
         
         cpath = rtrajectory(:, :, cindex);
         
-        cstyle = 'or';
+        cstyle = '.r';
         if Xk(trId) == true
-            cstyle = 'og';
+            cstyle = '.g';
         end
         
-        plot(cpath(:, 1), cpath(:, 2), cstyle, 'MarkerSize', 0.05);
+        plot(cpath(:, 1), cpath(:, 2), cstyle, 'MarkerSize', 0.01);
     end
-        
+    
+    hold off;
+    
+    hold on;
     
     % Plotting average for correct
     for tgId = 1:NumTargets
@@ -203,7 +285,19 @@ for iId = 1:NumIntegrators
         cpath = nanmean(rtrajectory(:, :, cindex & Xk == true), 3); 
         
         if isempty(cpath) == false
-            plot(cpath(:, 1), cpath(:, 2), 'ko', 'MarkerSize', 1);
+            plot(cpath(:, 1), cpath(:, 2), 'k', 'LineWidth', 2);
+        end
+        
+    end
+    hold off;
+    
+    % Plotting manual
+    hold on;
+    for tgId = 1:NumTargets
+        cpath = mtracking(:, :, tgId); 
+        
+        if isempty(cpath) == false
+            plot(cpath(:, 1), cpath(:, 2), 'k--', 'LineWidth', 1);
         end
         
     end
@@ -222,5 +316,43 @@ for iId = 1:NumIntegrators
     set(gca, 'YTickLabel', '')
     
 end
+
+%% Fig4
+fig4 = figure;
+fig_set_position(fig4, 'All');
+
+subplot(2, NumTargets, 1:NumTargets);
+condition = Xk == 1;
+boxplot(frechet(condition), {Ck(condition) Ik(condition)}, 'factorseparator', 1, 'labels', num2cell(Ck(condition)), 'labelverbosity', 'minor');
+grid on;
+xlabel('Target');
+ylabel('[cm]');
+title('Frechet distance per target');
+
+color = {'r', 'g'};
+for tgId = 1:NumTargets
+    subplot(2, NumTargets, tgId + NumTargets);
+    
+    hold on;
+    for iId = 1:NumIntegrators
+        cavg = frechet_evo_avg(tgId, :, iId);
+        cstd = frechet_evo_std(tgId, :, iId);
+        errorbar(cavg, cstd, ['o-' color{iId}]);
+    end
+    xlim([0.5 NumDays+0.5]);
+    ylim([0 300]);
+    hold off;
+    
+    grid on;
+    xlabel('Day');
+    ylabel('[cm]');
+    title(['Target ' num2str(tgId)]);
+    
+    if tgId == Targets(NumTargets)
+        legend('discrete', 'continuous');
+    end
+    
+end
+
 
 

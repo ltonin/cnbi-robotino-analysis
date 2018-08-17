@@ -66,11 +66,28 @@ end
 %% Computing accuracy per subject and integrator
 SubAvgAccuracy = zeros(NumSubjects, NumIntegrators);
 SubStdAccuracy = zeros(NumSubjects, NumIntegrators);
+SubSteAccuracy = zeros(NumSubjects, NumIntegrators);
 for sId = 1:NumSubjects
     for iId = 1:NumIntegrators
         cindex = rIk == Integrators(iId) & rSk == Subjects(sId);
         SubAvgAccuracy(sId, iId) = nanmean(rAccuracy(cindex));
         SubStdAccuracy(sId, iId) = nanstd(rAccuracy(cindex));
+        SubSteAccuracy(sId, iId) = nanstd(rAccuracy(cindex))./sqrt(sum(cindex));
+    end
+end
+
+%% Computing accuracy per target per subject per integrator
+tsiAccuracy = [];
+xCk = []; xSk = []; xIk = [];
+for tgId = 1:NumTargets
+    for sId = 1:NumSubjects
+        for iId = 1:NumIntegrators
+           cindex = Sk == sId & iId == Ik & Ck == Targets(tgId);
+           tsiAccuracy = cat(1, tsiAccuracy, sum(Xk(cindex))./sum(cindex));
+           xCk = cat(1, xCk, tgId);
+           xSk = cat(1, xSk, sId);
+           xIk = cat(1, xIk, iId);
+        end
     end
 end
 
@@ -90,12 +107,47 @@ disp(['[stat] - Overall accuracy significance: p<' num2str(PVal, 3)]);
 
 % Fig1 - Accuracy per subject and average accuracy
 fig1 = figure;
-fig_set_position(fig1, 'Top');
+fig_set_position(fig1, 'All');
 
-subplot(1, 3, [1 2]);
-plot_barerrors(100*SubAvgAccuracy, 100*SubStdAccuracy);
+color = [0 0.4470 0.7410; 0.8500 0.3250 0.0980];
+subplot(2, 3, [1 2 3]);
+%plot_barerrors(100*SubAvgAccuracy, 100*SubSteAccuracy);
+%barwitherr(100*SubSteAccuracy, 100*SubAvgAccuracy);
+superbar(100*SubAvgAccuracy, 'E', 100*SubSteAccuracy, 'BarFaceColor', reshape(color, [1 size(color)]), 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', 1, 'ErrorbarStyle', 'T');
 grid on;
+ylim([0 110]);
+set(gca, 'XTickLabel', sublist);
+xlabel('Subject');
+ylabel('[%]');
+title('Average target accuracy per subject (+/- SEM)');
     
-subplot(1, 3, 3);
-boxplot(100*rAccuracy, rIk);
+subplot(2, 3, 4);
+cavg = [mean(rAccuracy(rIk == 1)); mean(rAccuracy(rIk == 2))];
+cstd = [std(rAccuracy(rIk == 1))./sqrt(sum(rIk == 1)); std(rAccuracy(rIk == 2))./sqrt(sum(rIk == 2))];
+%errorbar(100*cavg, 100*cstd, 'o-');
+superbar(100*cavg, 'E',  100*cstd, 'ErrorbarStyle', 'T', 'BarWidth', 0.3, 'BarFaceColor', color, 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', 1, 'P', [NaN PVal; PVal NaN])
+set(gca, 'XTick', 1:2);
+set(gca, 'XTickLabel', {'discrete', 'continuous'});
+xlim([0.5 2.5]);
+% ylim([50 100]);
+
+xlabel('Modality');
+ylabel('[%]');
+title('Average target accuracy (+/- SEM)');
 grid on;
+
+
+subplot(2, 3, [5 6]);
+cavg = zeros(2, NumTargets);
+for tgId = 1:NumTargets 
+    cindex = Ck == Targets(tgId);
+    %cavg(:, tgId) = [sum(Xk(cindex & Ik == 1))./sum(cindex & Ik == 1) sum(Xk(cindex & Ik == 2))./sum(cindex & Ik == 2)]; 
+    cavg(:, tgId) = [mean(tsiAccuracy(xCk == tgId & xIk == 1)) mean(tsiAccuracy(xCk == tgId & xIk == 2))]; 
+end
+ctick = [0 pi/4 pi/2 3*pi/4 pi];
+polarplot(ctick', fliplr(cavg)', '-o');
+set(gca, 'ThetaLim', [0 180])
+set(gca, 'RTickLabel', {'0%'; '20%'; '40%'; '60%'; '80%'; '100%'})
+set(gca, 'ThetaTick', [0 45 90 135 180])
+set(gca, 'ThetaTickLabel', {'Target 5', 'Target 4', 'Target 3', 'Target 2', 'Target 1'})
+title('Average accuracy per target')

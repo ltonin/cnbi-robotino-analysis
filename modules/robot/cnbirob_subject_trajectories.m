@@ -1,6 +1,6 @@
-clearvars; clc;
-
-subject = 'ai6';
+% clearvars; clc;
+% 
+% subject = 'aj9';
 
 pattern         = [subject '*.online.mi.mi_bhbf.*.mobile'];
 datapath        = 'analysis/robot/tracking/';
@@ -48,6 +48,11 @@ util_bdisp('[proc] - Loading target record data');
 load(['analysis/robot/' subject '_robot_records.mat']); 
 Xk = records.trial.Xk;
 
+%% Loading manual trajectories
+util_bdisp('[proc] - Loading manual trajectory data');
+manual = load('analysis/robot/00_robot_trajectory.mat'); 
+
+
 %% Create trial-based label vectors
 util_bdisp('[proc] - Create trial-based label vectors');
 Ik = zeros(NumTrials, 1);
@@ -90,10 +95,69 @@ for trId = 1:NumTrials
     
 end
 
+%% Create resampled trajectories for manual
+util_bdisp('[proc] - Create resampled trajectories for manual');
+maxlength = 0;
+
+for trId = 1:max(manual.labels.trial.Tk)
+    maxlength = max(maxlength, sum(manual.labels.sample.Tk == manual.labels.trial.Tk(trId)));
+end
+
+ttracking = zeros(maxlength, 2, max(manual.labels.trial.Tk));
+for trId = 1:max(manual.labels.trial.Tk)
+    cindex = manual.labels.sample.Tk == manual.labels.trial.Tk(trId);
+    clength = sum(cindex);
+    cpath = manual.trajectory(cindex, :);
+    ttracking(:, :, trId) =  interp1(1:clength, cpath, linspace(1, clength, maxlength));
+    
+end
+
+mtracking = zeros(maxlength, 2, NumTargets);
+for tgId = 1:NumTargets
+    cindex = manual.labels.trial.Ck == Targets(tgId);
+    mtracking(:, :, tgId) = nanmean(ttracking(:, :, cindex), 3);
+end
+
+%% Frechet distance
+util_bdisp('[proc] - Computing Frechet distance');
+fdistance = zeros(NumTrials, 1);
+for trId = 1:NumTrials
+    util_disp_progress(trId, NumTrials, ' ')
+    
+    if strcmpi(subject, 'ai6') && (trId == 21)
+        disp(['[proc] - Skipping trial 21 for subject ' subject ' (nan values)']);
+        continue
+    end
+    
+    ctarget = Ck(trId); 
+    cindex = lbls.Tk == Tk(trId);
+    
+    crefpath = mtracking(:, :, ctarget);
+    cpath    = tracking(cindex, :);
+    fdistance(trId) = proc_frechet_distance(crefpath, cpath);
+end
+
+%% Statistics
+util_bdisp('[proc] - Computing statistics');
+fdistance_pval = zeros(NumTargets, 1);
+for tgId = 1:NumTargets
+    cindex1 = Xk == 1 & Ik == 1 & Ck == tgId;
+    cindex2 = Xk == 1 & Ik == 2 & Ck == tgId;
+    if sum(cindex1)==0 || sum(cindex2)==0
+        disp(['[stat] - Skipping target ' Targets(tgId) ': no data available']);
+        continue;
+    end
+    fdistance_pval(tgId) = ranksum(fdistance(cindex1), fdistance(cindex2));
+    
+    disp(['[stat] - Wilcoxon test on frechet distance for target ' num2str(tgId) ': p=' num2str(fdistance_pval(tgId),3)]); 
+end
+
 %% Saving subject data
 filename = fullfile(savedir, [subject '_robot_trajectory.mat']);
 util_bdisp(['[out] - Saving subject data in: ' filename]);
-trajectory = tracking;
+trajectory  = tracking;
+mtrajectory = mtracking;
+frechet     = fdistance;
 labels.sample.Rk = lbls.Rk;
 labels.sample.Ik = lbls.Ik;
 labels.sample.Dk = lbls.Dk;
@@ -105,7 +169,7 @@ labels.trial.Dk  = Dk;
 labels.trial.Ck  = Ck;
 labels.trial.Tk  = Tk;
 labels.trial.Xk  = Xk;
-save(filename, 'trajectory', 'labels');
+save(filename, 'trajectory', 'mtrajectory', 'frechet', 'labels');
 
 %% Plotting
 
@@ -137,6 +201,19 @@ for iId = 1:NumIntegrators
     end
     hold off;
     
+    % Plotting manual
+    hold on;
+    for tgId = 1:NumTargets
+        cpath = mtracking(:, :, tgId); 
+        cpath(:, 2) = abs(cpath(:, 2) - FieldSize(2));
+        cpath = ceil(cpath/MapResolution);
+        if isempty(cpath) == false
+            plot(cpath(:, 1), cpath(:, 2), 'g', 'MarkerSize', 1);
+        end
+        
+    end
+    hold off;
+    
     axis image
     xlabel('[cm]');
     ylabel('[cm]');
@@ -163,6 +240,18 @@ for iId = 1:NumIntegrators
             plot(cpath(:, 1), cpath(:, 2), 'ko', 'MarkerSize', 1);
         end
         hold off;
+        
+        
+        % Plotting manual
+        hold on;
+        cmpath = mtracking(:, :, tgId); 
+        cmpath(:, 2) = abs(cmpath(:, 2) - FieldSize(2));
+        cmpath = ceil(cmpath/MapResolution);
+        if isempty(cmpath) == false
+            plot(cmpath(:, 1), cmpath(:, 2), 'g', 'MarkerSize', 1);
+        end
+        hold off;
+       
         
         axis image
         xlabel('[cm]');
@@ -214,6 +303,18 @@ for iId = 1:NumIntegrators
     end
     hold off;
     
+    % Plotting manual
+    hold on;
+    for tgId = 1:NumTargets
+        cpath = mtracking(:, :, tgId); 
+        
+        if isempty(cpath) == false
+            plot(cpath(:, 1), cpath(:, 2), 'k--', 'MarkerSize', 1);
+        end
+        
+    end
+    hold off;
+    
     % Draw field
     cnbirob_draw_field(TargetPos, TargetRadius, FieldSize);
     axis image
@@ -227,4 +328,14 @@ for iId = 1:NumIntegrators
     set(gca, 'YTickLabel', '')
     
 end
+
+%% Fig4
+fig4 = figure;
+fig_set_position(fig4, 'Top');
+
+boxplot(fdistance(Xk == 1), {Ck(Xk == 1) Ik(Xk == 1)}, 'factorseparator', 1, 'labels', num2cell(Ck(Xk==1)), 'labelverbosity', 'minor');
+grid on;
+xlabel('Target');
+ylabel('[cm]');
+title(['Subject ' subject ' - Frechet distance per target']);
 
