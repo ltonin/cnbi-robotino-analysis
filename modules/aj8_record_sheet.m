@@ -19,7 +19,8 @@ IntegratorType = [2 1];
 IntegratorName = {'ema', 'dynamic'};
 
 % Day
-DayId = [3 3];
+% DayId = [3 3];
+DayId = [1 1];
 
 records.trial.Rk = reshape(repmat(1:NumRuns, [NumTargets 1]), NumRuns*NumTargets, 1);
 records.trial.Ck = reshape(Target, numel(Target), 1);
