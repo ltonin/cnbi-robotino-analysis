@@ -10,7 +10,7 @@ TargetName      = {'Target1', 'Target2', 'Target3', 'Target4', 'Target5'};
 NumSubjects = length(sublist);
 
 Rk  = []; Ik  = []; Dk  = []; Tk  = []; Ck  = []; Sk  = []; Xk = [];
-rIk = []; rDk = []; rSk = [];
+rIk = []; rDk = []; rSk = []; rRk = [];
 cnumtrials = 0;
 cnumruns = 0;
 
@@ -23,6 +23,7 @@ for sId = 1:NumSubjects
     
     % Labels
     Rk  = cat(1, Rk,  cdata.records.trial.Rk + cnumruns);
+    
     Ik  = cat(1, Ik,  cdata.records.trial.Ik);
     Dk  = cat(1, Dk,  cdata.records.trial.Dk);
     Ck  = cat(1, Ck,  cdata.records.trial.Ck);
@@ -32,6 +33,7 @@ for sId = 1:NumSubjects
     cnumtrials = max(Tk);
     cnumruns = max(Rk);
     
+    rRk = cat(1, rRk, cdata.records.run.Rk');
     rIk = cat(2, rIk, cdata.records.run.Ik);
     rDk = cat(2, rDk, cdata.records.run.Dk);
     rSk = cat(2, rSk, sId*ones(1, length(cdata.records.run.Ik)));
@@ -48,10 +50,32 @@ NumTargets = length(Targets);
 %% Accuracy per run
 rAccuracy = zeros(NumRuns, 1);
 for rId = 1:NumRuns
+    
     cindex = Rk == Runs(rId);
-    rAccuracy(rId) = sum(Xk(cindex))./sum(cindex); 
+    rAccuracy(rId) = sum(Xk(cindex))./sum(cindex);  
 end
 
+%% Accuracy over run
+yRk = rRk;
+for sId = 1:NumSubjects
+    for iId = 1:NumIntegrators
+        cindex = rSk == sId & rIk == Integrators(iId);
+        %crunids = rRk(cindex);
+        yRk(cindex) = 1:sum(cindex); 
+    end
+end
+
+AvgAccuracyRun = nan(5, 2);
+StdAccuracyRun = nan(5, 2);
+SteAccuracyRun = nan(5, 2);
+for iId = 1:NumIntegrators
+    for rId = 1:5
+        cindex = rIk == iId & yRk' == rId;
+        AvgAccuracyRun(rId, iId) = mean(rAccuracy(cindex));
+        StdAccuracyRun(rId, iId) = std(rAccuracy(cindex));
+        SteAccuracyRun(rId, iId) = std(rAccuracy(cindex))./sqrt(sum(cindex));
+    end
+end
 %% Accuracy per target per run
 tAccuracy = zeros(NumTargets, NumRuns);
 for rId = 1:NumRuns
@@ -92,16 +116,24 @@ for tgId = 1:NumTargets
 end
 
 %% Statistical tests
+util_bdisp('[stat] - Statical tests on accuracy per subject');
 SubPVal = zeros(NumSubjects, 1);
 for sId = 1:NumSubjects
         cindex = rSk == Subjects(sId);
         SubPVal(sId) = ranksum(rAccuracy(cindex & rIk == 1), rAccuracy(cindex & rIk == 2));
-        disp(['[stat] - Subject ' sublist{sId} ' significance: p<' num2str(SubPVal(sId), 3)]); 
+        disp(['       - Subject ' sublist{sId} ' significance: p<' num2str(SubPVal(sId), 3)]); 
 end
 
-PVal = ranksum(rAccuracy(rIk == 1), rAccuracy(rIk == 2), 'tail', 'left');
-disp(['[stat] - Overall accuracy significance: p<' num2str(PVal, 3)]);
+util_bdisp('[stat] - Overall accuracy between control conditions:');
+PVal = ranksum(rAccuracy(rIk == 1), rAccuracy(rIk == 2));
+disp(['       - Overall accuracy significance: p<' num2str(PVal, 3)]);
 
+util_bdisp('[stat] - Statical tests on accuracy over run');
+for rId = 1:5
+    cindex = yRk' == rId;
+    cpval = ranksum(rAccuracy(cindex & rIk == 1), rAccuracy(cindex & rIk == 2));
+    disp(['       - Run ' num2str(rId) ' significance: p<' num2str(cpval, 3)]); 
+end
 
 %% Plot
 
@@ -110,25 +142,29 @@ fig1 = figure;
 fig_set_position(fig1, 'All');
 
 color = [0 0.4470 0.7410; 0.8500 0.3250 0.0980];
-subplot(2, 3, [1 2 3]);
+subplot(2, 4, [1 2 3]);
 %plot_barerrors(100*SubAvgAccuracy, 100*SubSteAccuracy);
 %barwitherr(100*SubSteAccuracy, 100*SubAvgAccuracy);
 superbar(100*SubAvgAccuracy, 'E', 100*SubSteAccuracy, 'BarFaceColor', reshape(color, [1 size(color)]), 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', 1, 'ErrorbarStyle', 'T');
 grid on;
 ylim([0 110]);
+plot_hline(100/NumTargets, 'k--');
+set(gca, 'XTick', 1:NumSubjects);
 set(gca, 'XTickLabel', sublist);
 xlabel('Subject');
 ylabel('[%]');
 title('Average target accuracy per subject (+/- SEM)');
     
-subplot(2, 3, 4);
+subplot(2, 4, 4);
 cavg = [mean(rAccuracy(rIk == 1)); mean(rAccuracy(rIk == 2))];
 cstd = [std(rAccuracy(rIk == 1))./sqrt(sum(rIk == 1)); std(rAccuracy(rIk == 2))./sqrt(sum(rIk == 2))];
 %errorbar(100*cavg, 100*cstd, 'o-');
 superbar(100*cavg, 'E',  100*cstd, 'ErrorbarStyle', 'T', 'BarWidth', 0.3, 'BarFaceColor', color, 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', 1, 'P', [NaN PVal; PVal NaN])
+xlim([0.5 2.5]);
+plot_hline(100/NumTargets, 'k--');
 set(gca, 'XTick', 1:2);
 set(gca, 'XTickLabel', {'discrete', 'continuous'});
-xlim([0.5 2.5]);
+
 % ylim([50 100]);
 
 xlabel('Modality');
@@ -136,8 +172,17 @@ ylabel('[%]');
 title('Average target accuracy (+/- SEM)');
 grid on;
 
+subplot(2, 4, [5 6]);
+errorbar(100*AvgAccuracyRun, 100*SteAccuracyRun, 'o-');
+xlim([0.5 5.5]);
+ylim([0 110]);
+grid on;
+set(gca, 'XTick', 1:5);
+ylabel('[%]');
+xlabel('Run');
+title('Average accuracy per run (+/- SEM)');
 
-subplot(2, 3, [5 6]);
+subplot(2, 4, [7 8]);
 cavg = zeros(2, NumTargets);
 for tgId = 1:NumTargets 
     cindex = Ck == Targets(tgId);
