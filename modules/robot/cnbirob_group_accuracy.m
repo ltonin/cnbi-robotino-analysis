@@ -4,10 +4,14 @@ sublist = {'ai6', 'ai7', 'ai8', 'aj1', 'aj3', 'aj4', 'aj7', 'aj8', 'aj9'};
 
 pattern         = '_robot_records.mat';
 datapath        = 'analysis/robot/';
+figdir   = 'figure/';
 
 IntegratorName  = {'discrete', 'continuous'};
 TargetName      = {'Target1', 'Target2', 'Target3', 'Target4', 'Target5'};
 NumSubjects = length(sublist);
+
+% Create figure directory
+util_mkdir('./', figdir);
 
 Rk  = []; Ik  = []; Dk  = []; Tk  = []; Ck  = []; Sk  = []; Xk = [];
 rIk = []; rDk = []; rSk = []; rRk = [];
@@ -106,7 +110,7 @@ xCk = []; xSk = []; xIk = [];
 for tgId = 1:NumTargets
     for sId = 1:NumSubjects
         for iId = 1:NumIntegrators
-           cindex = Sk == sId & iId == Ik & Ck == Targets(tgId);
+           cindex = Sk == sId & Ik == iId & Ck == Targets(tgId);
            tsiAccuracy = cat(1, tsiAccuracy, sum(Xk(cindex))./sum(cindex));
            xCk = cat(1, xCk, tgId);
            xSk = cat(1, xSk, sId);
@@ -135,6 +139,14 @@ for rId = 1:5
     disp(['       - Run ' num2str(rId) ' significance: p<' num2str(cpval, 3)]); 
 end
 
+util_bdisp('[stat] - Statical tests on accuracy over target:');
+PValTarget = zeros(NumTargets, 1);
+for cId = 1:NumTargets
+    cindex = xCk == Targets(cId);
+    PValTarget(cId) = ranksum(tsiAccuracy(cindex & xIk == 1), tsiAccuracy(cindex & xIk == 2), 'tail', 'left');
+    disp(['       - Target ' num2str(cId) ' significance: p<' num2str(PValTarget(cId), 3)]); 
+end
+
 %% Plot
 
 % Fig1 - Accuracy per subject and average accuracy
@@ -145,7 +157,7 @@ color = [0 0.4470 0.7410; 0.8500 0.3250 0.0980];
 subplot(2, 4, [1 2 3]);
 %plot_barerrors(100*SubAvgAccuracy, 100*SubSteAccuracy);
 %barwitherr(100*SubSteAccuracy, 100*SubAvgAccuracy);
-superbar(100*SubAvgAccuracy, 'E', 100*SubSteAccuracy, 'BarFaceColor', reshape(color, [1 size(color)]), 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', 1, 'ErrorbarStyle', 'T');
+superbar(100*SubAvgAccuracy, 'E', 100*SubSteAccuracy, 'BarFaceColor', reshape(color, [1 size(color)]), 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', .1, 'ErrorbarStyle', 'T', 'ErrorbarLineWidth', .1);
 grid on;
 ylim([0 110]);
 plot_hline(100/NumTargets, 'k--');
@@ -159,7 +171,7 @@ subplot(2, 4, 4);
 cavg = [mean(rAccuracy(rIk == 1)); mean(rAccuracy(rIk == 2))];
 cstd = [std(rAccuracy(rIk == 1))./sqrt(sum(rIk == 1)); std(rAccuracy(rIk == 2))./sqrt(sum(rIk == 2))];
 %errorbar(100*cavg, 100*cstd, 'o-');
-superbar(100*cavg, 'E',  100*cstd, 'ErrorbarStyle', 'T', 'BarWidth', 0.3, 'BarFaceColor', color, 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', 1, 'P', [NaN PVal; PVal NaN])
+superbar(100*cavg, 'E',  100*cstd, 'ErrorbarStyle', 'T', 'BarWidth', 0.3, 'BarFaceColor', color, 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', .1, 'ErrorbarLineWidth', .1, 'P', [NaN PVal; PVal NaN], 'PStarThreshold', 0.06, 'PLineWidth', 0.5)
 xlim([0.5 2.5]);
 plot_hline(100/NumTargets, 'k--');
 set(gca, 'XTick', 1:2);
@@ -196,3 +208,9 @@ set(gca, 'RTickLabel', {'0%'; '20%'; '40%'; '60%'; '80%'; '100%'})
 set(gca, 'ThetaTick', [0 45 90 135 180])
 set(gca, 'ThetaTickLabel', {'Target 5', 'Target 4', 'Target 3', 'Target 2', 'Target 1'})
 title('Average accuracy per target')
+
+%% Saving figure
+figfilename = [figdir '/group_accuracy.pdf'];
+util_bdisp(['[fig] - Saving figure in: ' figfilename]);
+fig_figure2pdf(fig1, figfilename) 
+

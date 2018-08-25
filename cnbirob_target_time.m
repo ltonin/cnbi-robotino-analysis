@@ -35,16 +35,20 @@ util_bdisp('[proc] - Extract events')
 %% Extract trials
 
 NumTrials = length(TargetEvt.TYP);
-Rk = zeros(NumTrials, 1);
-Ik = zeros(NumTrials, 1);
-Dk = zeros(NumTrials, 1);
-Tk = zeros(NumTrials, 1);
-Time = zeros(NumTrials, 1);
+Rk = nan(NumTrials, 1);
+Ik = nan(NumTrials, 1);
+Dk = nan(NumTrials, 1);
+Tk = nan(NumTrials, 1);
+Time = nan(NumTrials, 1);
 
 NumTrialRun = NumTrials/NumRuns;
 
 for trId = 1:NumTrials
     cpos = TargetEvt.POS(trId);
+    
+    if isnan(cpos) 
+        continue;
+    end
     
     Time(trId) = TargetEvt.DUR(trId);
     
@@ -86,7 +90,7 @@ TimeTarget = zeros(NumTargets, NumRuns);
 for rId = 1:NumRuns
     for tId = 1:NumTargets
         cindex = Tk == tId & Rk == Runs(rId) & Xk;
-        TimeTarget(tId, rId) = mean(Time(cindex));
+        TimeTarget(tId, rId) = nanmean(Time(cindex));
     end
 end
 

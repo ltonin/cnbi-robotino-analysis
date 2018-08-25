@@ -1,6 +1,6 @@
 clearvars; clc;
 
-subject = 'aj1';
+subject = 'ai6';
 
 pattern  = '*.online.mi.mi_bhbf.*.mobile.bag';
 folder   = 'robot';

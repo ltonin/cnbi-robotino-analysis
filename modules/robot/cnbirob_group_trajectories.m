@@ -4,6 +4,10 @@ sublist = {'ai6', 'ai7', 'ai8', 'aj1', 'aj3', 'aj4', 'aj7', 'aj8', 'aj9'};
 
 pattern         = '_robot_trajectory.mat';
 datapath        = 'analysis/robot/';
+figdir   = 'figure/';
+
+% Create figure directory
+util_mkdir('./', figdir);
 
 IntegratorName  = {'discrete', 'continuous'};
 TargetName      = {'Target1', 'Target2', 'Target3', 'Target4', 'Target5'};
@@ -149,6 +153,21 @@ for tgId = 1:NumTargets
             frechet_evo_std(tgId, dId, iId) = nanstd(frechet(cindex)); 
             npoints(tgId, dId, iId) = sum(cindex);
         end
+    end
+end
+
+%% Frechet distance per target
+AvgFrechetTarget = zeros(NumTargets, NumIntegrators);
+MedFrechetTarget = zeros(NumTargets, NumIntegrators);
+StdFrechetTarget = zeros(NumTargets, NumIntegrators);
+SteFrechetTarget = zeros(NumTargets, NumIntegrators);
+for cId = 1:NumTargets
+    for iId = 1:NumIntegrators
+        cindex = Ck == Targets(cId) & Ik == Integrators(iId) & Xk == 1;
+        AvgFrechetTarget(cId, iId) = nanmean(frechet(cindex));
+        MedFrechetTarget(cId, iId) = nanmedian(frechet(cindex));
+        StdFrechetTarget(cId, iId) = nanstd(frechet(cindex));
+        SteFrechetTarget(cId, iId) = nanstd(frechet(cindex))./sqrt(sum(cindex));
     end
 end
 
@@ -321,7 +340,7 @@ end
 fig4 = figure;
 fig_set_position(fig4, 'All');
 
-subplot(2, NumTargets, 1:NumTargets);
+subplot(1, 4, [1 2]);
 condition = Xk == 1;
 boxplot(frechet(condition), {Ck(condition) Ik(condition)}, 'factorseparator', 1, 'labels', num2cell(Ck(condition)), 'labelverbosity', 'minor');
 grid on;
@@ -329,30 +348,31 @@ xlabel('Target');
 ylabel('[cm]');
 title('Frechet distance per target');
 
-color = {'r', 'g'};
-for tgId = 1:NumTargets
-    subplot(2, NumTargets, tgId + NumTargets);
-    
-    hold on;
-    for iId = 1:NumIntegrators
-        cavg = frechet_evo_avg(tgId, :, iId);
-        cstd = frechet_evo_std(tgId, :, iId);
-        errorbar(cavg, cstd, ['o-' color{iId}]);
-    end
-    xlim([0.5 NumDays+0.5]);
-    ylim([0 300]);
-    hold off;
-    
-    grid on;
-    xlabel('Day');
-    ylabel('[cm]');
-    title(['Target ' num2str(tgId)]);
-    
-    if tgId == Targets(NumTargets)
-        legend('discrete', 'continuous');
-    end
-    
-end
+subplot(1, 4, [3 4]);
+ctick = [0 pi/4 pi/2 3*pi/4 pi];
+polarplot(ctick', flipud(MedFrechetTarget), '-o');
+set(gca, 'ThetaLim', [0 180])
+set(gca, 'RTickLabel', {'0cm'; '50cm'; '100cm'})
+set(gca, 'ThetaTick', [0 45 90 135 180])
+set(gca, 'ThetaTickLabel', {'Target 5', 'Target 4', 'Target 3', 'Target 2', 'Target 1'})
+title('Median frechet distance per target')
+
+%% Saving figures
+figfilename1 = [figdir '/group_trajectory_hitmap.pdf'];
+util_bdisp(['[fig] - Saving figure in: ' figfilename1]);
+fig_figure2pdf(fig1, figfilename1) 
+
+figfilename2 = [figdir '/group_trajectory_hitmap_target.pdf'];
+util_bdisp(['[fig] - Saving figure in: ' figfilename2]);
+fig_figure2pdf(fig2, figfilename2) 
+
+figfilename3 = [figdir '/group_trajectory.pdf'];
+util_bdisp(['[fig] - Saving figure in: ' figfilename3]);
+fig_figure2pdf(fig3, figfilename3) 
+
+figfilename4 = [figdir '/group_trajectory_frechet.pdf'];
+util_bdisp(['[fig] - Saving figure in: ' figfilename4]);
+fig_figure2pdf(fig4, figfilename4) 
 
 
 
