@@ -1,7 +1,7 @@
-clearvars; clc;
+clearvars;
 
 subject = 'aj3';
-savedir     = 'analysis/robot';
+savedir = 'analysis/robot/record/';
 
 % Create analysis directory
 util_mkdir('./', savedir);
@@ -37,16 +37,19 @@ IntegratorName = {'ema', 'dynamic'};
 % Day
 DayId = [1 1 2 2 2 2 3 3 3 3];
 
-records.trial.Rk = reshape(repmat(1:NumRuns, [NumTargets 1]), NumRuns*NumTargets, 1);
-records.trial.Ck = reshape(Target, numel(Target), 1);
-records.trial.Xk = reshape(Reached, numel(Reached), 1);
-records.trial.Ik = reshape(repmat(IntegratorType, [NumTargets 1]), NumRuns*NumTargets, 1);
-records.trial.Il = IntegratorName;
-records.trial.Dk = reshape(repmat(DayId, [NumTargets 1]), NumRuns*NumTargets, 1);
-records.trial.Tk = (1:NumRuns*NumTargets)';
+% Get reached
+reached = reshape(Reached, numel(Reached), 1);
 
-records.run.Rk = 1:NumRuns;
-records.run.Ik = IntegratorType;
-records.run.Dk = DayId;
+% Get raw labels
+labels.raw.trial.Rk = reshape(repmat(1:NumRuns, [NumTargets 1]), NumRuns*NumTargets, 1);
+labels.raw.trial.Ck = reshape(Target, numel(Target), 1);
+labels.raw.trial.Ik = reshape(repmat(IntegratorType, [NumTargets 1]), NumRuns*NumTargets, 1);
+labels.raw.trial.Il = IntegratorName;
+labels.raw.trial.Dk = reshape(repmat(DayId, [NumTargets 1]), NumRuns*NumTargets, 1);
+labels.raw.trial.Tk = (1:NumRuns*NumTargets)';
 
-save([savedir '/' subject '_robot_records.mat'], 'records');
+labels.raw.run.Rk = 1:NumRuns;
+labels.raw.run.Ik = IntegratorType;
+labels.raw.run.Dk = DayId;
+
+save([savedir '/' subject '_robot_record.mat'], 'reached', 'labels');

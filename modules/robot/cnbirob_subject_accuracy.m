@@ -1,9 +1,11 @@
-clearvars; clc;
-
-subject = 'ai7';
+% clearvars; clc;
+% 
+% subject = 'ai7';
 
 datapath = 'analysis/robot/';
 savedir  = 'analysis/robot/';
+
+DoPlot = false;
 
 %% Loading target record data
 load([datapath '/' subject '_robot_records.mat']); 
@@ -63,6 +65,11 @@ end
 
 
 %% Plot
+
+if DoPlot == false
+    return
+end
+
 fig1 = figure;
 fig_set_position(fig1, 'All');
 

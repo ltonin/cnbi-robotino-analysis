@@ -1,6 +1,6 @@
-clearvars; clc;
-
-subject = 'e8';
+% clearvars; clc;
+% 
+% subject = 'e8';
 
 pattern         = [subject '*.online.mi.mi_bhbf.*.mobile'];
 datapath        = 'analysis/robot/tracking/';
@@ -16,7 +16,7 @@ TargetPos(4, :) = [662 362];
 TargetPos(5, :) = [750 150];
 TargetRadius    = 25;           % [cm]
 
-DoPlot = true;
+DoPlot = false;
 
 mTargetPos    = ceil(TargetPos/MapResolution);
 mTargetRadius = ceil(TargetRadius/MapResolution);

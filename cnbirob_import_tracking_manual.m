@@ -34,8 +34,8 @@ for fId = 1:nfiles
     
     % Re-arrange tracking data
     tracking  = [cdata{1} cdata{2}];
-    labels.Tk = cdata{3} + 1;
-    labels.Ck = cdata{4};
+    labels.raw.samples.Tk = cdata{3} + 1;
+    labels.raw.samples.Ck = cdata{4};
     
     % Saving tracking data
     [~, cname] = fileparts(cfile);

@@ -1,11 +1,11 @@
-clearvars; clc;
-
-subject = 'e8';
+% clearvars; clc;
+% 
+% subject = 'aj3';
 
 pattern  = '*.online.mi.mi_bhbf.*.mobile.gdf';
 experiment  = 'micontinuous';
 datapath    = ['/mnt/data/Research/' experiment '/' subject '_' experiment '/'];
-savedir     = 'analysis/robot/';
+savedir     = 'analysis/robot/timing/';
 
 TargetEvents = [26113 26114 26115 26116 26117];
 NumTargets = length(TargetEvents);
@@ -25,11 +25,13 @@ Rk = [];
 Ik = [];
 Dk = [];
 Dl = [];
+Tk = [];
 Yk = [];
 
 currday = 0;
 lastday = [];
 currintrun = [0 0];
+prev_trial = 0;
 
 for fId = 1:nfiles
     
@@ -78,8 +80,8 @@ for fId = 1:nfiles
     Ik = cat(1, Ik, cintegrator*ones(cntrials, 1));
     Dk = cat(1, Dk, currday*ones(cntrials, 1));
     Yk = cat(1, Yk, currintrun(cintegrator)*ones(cntrials, 1));
-    
-    
+    Tk = cat(1, Tk, (1:cntrials)' + prev_trial);
+    prev_trial = Tk(end);
 end
 
 
@@ -99,6 +101,7 @@ else
             Rk = [Rk(1:20); Rk(21); Rk(21:end)];
             Ik = [Ik(1:20); Ik(21); Ik(21:end)];
             Dk = [Dk(1:20); Dk(21); Dk(21:end)];
+            Tk = [Tk(1:20); Tk(21); Tk(21:end)+1];
             Yk = [Yk(1:20); Yk(21); Yk(21:end)];
             Ck = [Ck(1:20); 5; Ck(21:end)];
         case 'ai8'
@@ -107,8 +110,8 @@ else
             Ik = [Ik(1:11); Ik(13:end)];
             Dk = [Dk(1:11); Dk(13:end)];
             Ck = [Ck(1:11); Ck(13:end)];
+            Tk = [Tk(1:11); Tk(13:end)-1];
             Yk = [Yk(1:11); Yk(13:end)];
-
         case 'aj3'
             timing([21 23]) = timing([23 21]);
             timing = [timing(1:22); timing(25:end)]; 
@@ -117,38 +120,24 @@ else
             Rk = [Rk(1:22); Rk(25:end)];
             Ik = [Ik(1:22); Ik(25:end)];
             Dk = [Dk(1:22); Dk(25:end)];
+            Tk = [Tk(1:22); Tk(25:end)-2];
             Yk = [Yk(1:22); Yk(25:end)];
-        case 'e8'
-            keyboard
         otherwise
             error('chk:sbj', ['Unknown fixing rules for subject ' subject]);
     end
 end
 
-util_bdisp(['[io] - Import record data for subject ' subject]);
-load(['analysis/robot/' subject '_robot_records.mat']); 
-
-% Compute valid trials based on timeout
-Vk = timing <= Timeout;
-
 % Collecting the data
-labels.Ck = Ck;
-labels.Rk = Rk;
-labels.Ik = Ik;
-labels.Dk = Dk;
-labels.Yk = Yk;
-labels.Xk = records.trial.Xk;
-labels.Dl = Dl;
-labels.Vk = Vk;
-
-
+labels.raw.trial.Ck = Ck;
+labels.raw.trial.Rk = Rk;
+labels.raw.trial.Ik = Ik;
+labels.raw.trial.Dk = Dk;
+labels.raw.trial.Dl = Dl;
+labels.raw.trial.Tk = Tk;
+labels.raw.trial.Yk = Yk;
 
 % Saving timing
 cfilename = fullfile(savedir, [subject '_robot_timing.mat']);
 util_bdisp(['[out] - Saving timing data in ' cfilename]);
 save(cfilename, 'timing', 'labels');
 
-% Saving valid
-cfilename = fullfile(savedir, [subject '_robot_valid.mat']);
-util_bdisp(['[out] - Saving valid data (<Timeout) in ' cfilename]);
-save(cfilename, 'Vk', 'Timeout');

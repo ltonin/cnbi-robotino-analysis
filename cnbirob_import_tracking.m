@@ -1,6 +1,6 @@
-clearvars; clc;
-
-subject = 'b4';
+% clearvars; clc;
+% 
+% subject = 'b4';
 
 pattern  = '*.online.mi.mi_bhbf.*.mobile.csv';
 folder   = 'tracking/trajectories';
@@ -34,8 +34,8 @@ for fId = 1:nfiles
     
     % Re-arrange tracking data
     tracking  = [cdata{1} cdata{2}];
-    labels.Tk = cdata{3} + 1;
-    labels.Ck = cdata{4};
+    labels.raw.sample.Tk = cdata{3} + 1;
+    labels.raw.sample.Ck = cdata{4};
     
     % Saving tracking data
     [~, cname] = fileparts(cfile);

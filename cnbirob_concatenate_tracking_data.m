@@ -15,12 +15,13 @@ function [data, labels] = cnbirob_concatenate_tracking_data(filepaths, datafield
     Dl  = [];
     Tk  = [];
     Ck  = [];
+    Yk  = [];
     
     nfiles = length(filepaths);
     currday = 0;
     lastday = [];
     prev_trial = 0;
-
+    currintrun = [0 0];
     
     for fId = 1:nfiles
         cfile = filepaths{fId};
@@ -43,6 +44,7 @@ function [data, labels] = cnbirob_concatenate_tracking_data(filepaths, datafield
             otherwise
                 cintegrator = -1;
         end
+        currintrun(cintegrator) = currintrun(cintegrator) + 1;
         
         % Get day id and label
         if strcmpi(cinfo.date, lastday) == false
@@ -59,8 +61,9 @@ function [data, labels] = cnbirob_concatenate_tracking_data(filepaths, datafield
         Rk = cat(1, Rk, fId*ones(size(cdata.(datafield), 1), 1));
         Ik = cat(1, Ik, cintegrator*ones(size(cdata.(datafield), 1), 1));
         Dk = cat(1, Dk, currday*ones(size(cdata.(datafield), 1), 1));     
-        Ck = cat(1, Ck, cdata.labels.Ck);
-        Tk = cat(1, Tk, cdata.labels.Tk + prev_trial);
+        Ck = cat(1, Ck, cdata.labels.raw.sample.Ck);
+        Yk = cat(1, Yk, currintrun(cintegrator)*ones(length(cdata.labels.raw.sample.Ck), 1));
+        Tk = cat(1, Tk, cdata.labels.raw.sample.Tk + prev_trial);
         prev_trial = Tk(end);
         
     end
@@ -71,6 +74,7 @@ function [data, labels] = cnbirob_concatenate_tracking_data(filepaths, datafield
     labels.Dl  = Dl;
     labels.Tk  = Tk;
     labels.Ck  = Ck;
+    labels.Yk  = Yk;
 end
 
 

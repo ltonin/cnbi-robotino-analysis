@@ -1,11 +1,12 @@
-clearvars; clc;
-
-subject = 'e8';
+% clearvars; clc;
+% 
+% subject = 'e8';
 
 pattern  = '*.online.mi.mi_bhbf.*.mobile.gdf';
 experiment  = 'micontinuous';
 datapath    = ['/mnt/data/Research/' experiment '/' subject '_' experiment '/'];
-savedir     = 'analysis/robot/';
+recorddir   = 'analysis/robot/record/';
+savedir     = 'analysis/robot/timing/';
 
 TargetEvents = [26113 26114 26115 26116 26117];
 ResumeEvent = 25352;
@@ -22,7 +23,7 @@ util_mkdir('./', savedir);
 
 % Load record data to adjust task events
 util_bdisp('[io] - Loading record data to fix missing target events');
-record = load([savedir subject '_robot_records.mat']);
+record = load([recorddir subject '_robot_record.mat']);
 
 timing = [];
 Ck = [];
@@ -30,11 +31,13 @@ Rk = [];
 Ik = [];
 Dk = [];
 Dl = [];
+Tk = [];
 Yk = [];
 
 currday = 0;
 lastday = [];
 currintrun = [0 0];
+prev_trial = 0;
 
 for fId = 1:nfiles
     
@@ -58,7 +61,7 @@ for fId = 1:nfiles
     TrialDur = h.EVENT.POS(TrialStopId) - h.EVENT.POS(TrialStartId) + 1;
     
     % Getting the current trial tasks
-    ctrials = record.records.trial.Ck(record.records.trial.Rk == fId);
+    ctrials = record.labels.raw.trial.Ck(record.labels.raw.trial.Rk == fId);
     cntrials = length(ctrials);
     
     % Concatenate target durations (timings)
@@ -91,11 +94,9 @@ for fId = 1:nfiles
     Ik = cat(1, Ik, cintegrator*ones(cntrials, 1));
     Dk = cat(1, Dk, currday*ones(cntrials, 1));
     Yk = cat(1, Yk, currintrun(cintegrator)*ones(cntrials, 1));
-    
-    
+    Tk = cat(1, Tk, (1:cntrials)' + prev_trial);
+    prev_trial = Tk(end);
 end
-
-
 
 util_bdisp('[proc] - Check the correctness of the imported trial sequence');
 TrialPerRun = 10;
@@ -107,30 +108,6 @@ if(ExpectedNumTrials == RealNumTrials)
 else 
     warning('chk:data', ['Expected trial number: ' num2str(ExpectedNumTrials) ' - Real trial number: ' num2str(RealNumTrials) '. Fixing...']);
     switch(subject)
-        case 'ai6'
-            timing = [timing(1:20); nan; timing(21:end)];
-            Rk = [Rk(1:20); Rk(21); Rk(21:end)];
-            Ik = [Ik(1:20); Ik(21); Ik(21:end)];
-            Dk = [Dk(1:20); Dk(21); Dk(21:end)];
-            Yk = [Yk(1:20); Yk(21); Yk(21:end)];
-            Ck = [Ck(1:20); 5; Ck(21:end)];
-        case 'ai8'
-            timing = [timing(1:11); timing(13:end)];
-            Rk = [Rk(1:11); Rk(13:end)];
-            Ik = [Ik(1:11); Ik(13:end)];
-            Dk = [Dk(1:11); Dk(13:end)];
-            Ck = [Ck(1:11); Ck(13:end)];
-            Yk = [Yk(1:11); Yk(13:end)];
-
-        case 'aj3'
-            timing([21 23]) = timing([23 21]);
-            timing = [timing(1:22); timing(25:end)]; 
-            Ck([21 23]) = Ck([23 21]);
-            Ck = [Ck(1:22); Ck(25:end)]; 
-            Rk = [Rk(1:22); Rk(25:end)];
-            Ik = [Ik(1:22); Ik(25:end)];
-            Dk = [Dk(1:22); Dk(25:end)];
-            Yk = [Yk(1:22); Yk(25:end)];
         case 'ah7'
             timing = timing(2:end);
         case 'e8'
@@ -140,30 +117,16 @@ else
     end
 end
 
-util_bdisp(['[io] - Import record data for subject ' subject]);
-load(['analysis/robot/' subject '_robot_records.mat']); 
-
-% Compute valid trials based on timeout
-Vk = timing <= Timeout;
-
 % Collecting the data
-labels.Ck = Ck;
-labels.Rk = Rk;
-labels.Ik = Ik;
-labels.Dk = Dk;
-labels.Yk = Yk;
-labels.Xk = records.trial.Xk;
-labels.Dl = Dl;
-labels.Vk = Vk;
-
-
+labels.raw.trial.Ck = Ck;
+labels.raw.trial.Rk = Rk;
+labels.raw.trial.Ik = Ik;
+labels.raw.trial.Dk = Dk;
+labels.raw.trial.Dl = Dl;
+labels.raw.trial.Tk = Tk;
+labels.raw.trial.Yk = Yk;
 
 % Saving timing
 cfilename = fullfile(savedir, [subject '_robot_timing.mat']);
 util_bdisp(['[out] - Saving timing data in ' cfilename]);
 save(cfilename, 'timing', 'labels');
-
-% Saving valid
-cfilename = fullfile(savedir, [subject '_robot_valid.mat']);
-util_bdisp(['[out] - Saving valid data (<Timeout) in ' cfilename]);
-save(cfilename, 'Vk', 'Timeout');
