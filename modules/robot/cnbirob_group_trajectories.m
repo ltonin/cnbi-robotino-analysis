@@ -1,6 +1,6 @@
 clearvars; clc; close all;
 
-sublist = {'ai6', 'ai7', 'ai8', 'aj1', 'aj3', 'aj4', 'aj7', 'aj8', 'aj9'};
+sublist = {'ai6', 'ai7', 'ai8', 'aj1', 'aj3', 'aj4', 'aj7', 'aj8', 'aj9', 'e8', 'ah7', 'ac7', 'b4'};
 
 pattern         = '_robot_trajectory.mat';
 datapath        = 'analysis/robot/';
@@ -31,7 +31,7 @@ NumSubjects = length(sublist);
 trajectory = [];
 frechet    = [];
 
-Rk  = []; Ik  = []; Dk  = []; Tk  = []; Ck  = []; Sk  = []; Xk = [];
+Rk  = []; Ik  = []; Dk  = []; Tk  = []; Ck  = []; Sk  = []; Xk = []; Vk = [];
 sRk = []; sIk = []; sDk = []; sTk = []; sCk = []; sSk = [];
 cnumtrials = 0;
 
@@ -61,6 +61,7 @@ for sId = 1:NumSubjects
     Dk  = cat(1, Dk,  cdata.labels.trial.Dk);
     Ck  = cat(1, Ck,  cdata.labels.trial.Ck);
     Xk  = cat(1, Xk,  cdata.labels.trial.Xk);
+    Vk  = cat(1, Vk,  cdata.labels.trial.Vk);
     Sk  = cat(1, Sk,  sId*ones(length(cdata.labels.trial.Rk), 1));
     
     sTk = cat(1, sTk, cdata.labels.sample.Tk + cnumtrials);
@@ -148,7 +149,7 @@ npoints = zeros(NumTargets, NumDays, NumIntegrators);
 for tgId = 1:NumTargets 
     for dId = 1:NumDays
         for iId = 1:NumIntegrators
-            cindex = Ck == Targets(tgId) & Xk == 1 & Dk == Days(dId) & Ik == iId; 
+            cindex = Ck == Targets(tgId) & Xk == 1 & Vk == 1 & Dk == Days(dId) & Ik == iId; 
             frechet_evo_avg(tgId, dId, iId) = nanmean(frechet(cindex)); 
             frechet_evo_std(tgId, dId, iId) = nanstd(frechet(cindex)); 
             npoints(tgId, dId, iId) = sum(cindex);
@@ -163,7 +164,7 @@ StdFrechetTarget = zeros(NumTargets, NumIntegrators);
 SteFrechetTarget = zeros(NumTargets, NumIntegrators);
 for cId = 1:NumTargets
     for iId = 1:NumIntegrators
-        cindex = Ck == Targets(cId) & Ik == Integrators(iId) & Xk == 1;
+        cindex = Ck == Targets(cId) & Ik == Integrators(iId) & Xk == 1 & Vk == 1;
         AvgFrechetTarget(cId, iId) = nanmean(frechet(cindex));
         MedFrechetTarget(cId, iId) = nanmedian(frechet(cindex));
         StdFrechetTarget(cId, iId) = nanstd(frechet(cindex));
@@ -175,7 +176,7 @@ end
 util_bdisp('[proc] - Computing statistics');
 frechet_pval = zeros(NumTargets, 1);
 for tgId = 1:NumTargets
-    frechet_pval(tgId) = ranksum(frechet(Xk == 1 & Ik == 1 & Ck == tgId), frechet(Xk == 1 & Ik == 2 & Ck == tgId));
+    frechet_pval(tgId) = ranksum(frechet(Xk == 1 & Vk == 1 & Ik == 1 & Ck == tgId), frechet(Xk == 1 & Vk ==1 & Ik == 2 & Ck == tgId));
     
     disp(['[stat] - Wilcoxon test on frechet distance for target ' num2str(tgId) ': p=' num2str(frechet_pval(tgId),3)]); 
 end
@@ -195,7 +196,7 @@ for iId = 1:NumIntegrators
     % Plotting average for correct
     hold on;
     for tgId = 1:NumTargets
-        cindex = Ik == Integrators(iId) & Ck == Targets(tgId) & Xk == true;
+        cindex = Ik == Integrators(iId) & Ck == Targets(tgId) & Xk == true & Vk == 1;
         cpath = nanmean(rtrajectory(:, :, cindex), 3); 
         cpath = cpath/MapResolution;
         cpath(:, 2) = abs(cpath(:, 2) - mFieldSize(2));
@@ -234,13 +235,13 @@ fig2 = figure;
 fig_set_position(fig2, 'All');
 for iId = 1:NumIntegrators
     for tgId = 1:NumTargets
-        cindex = Ik == Integrators(iId)  & Ck == Targets(tgId) & Xk == true;
+        cindex = Ik == Integrators(iId)  & Ck == Targets(tgId) & Xk == true & Vk == 1;
         
         subplot(2, NumTargets, tgId + NumTargets*(iId-1));
         imagesc(flipud(nanmean(HitMap(:, :, cindex), 3)'), [0 0.5]);
         
         hold on;
-        cpath = nanmean(rtrajectory(:, :, cindex & Xk == true), 3); 
+        cpath = nanmean(rtrajectory(:, :, cindex & Xk == true & Vk == 1), 3); 
         cpath(:, 2) = abs(cpath(:, 2) - FieldSize(2));
         cpath = cpath/MapResolution;
         if isempty(cpath) == false
@@ -301,7 +302,7 @@ for iId = 1:NumIntegrators
     for tgId = 1:NumTargets
         cindex = Ik == Integrators(iId) & Ck == Targets(tgId); 
         
-        cpath = nanmean(rtrajectory(:, :, cindex & Xk == true), 3); 
+        cpath = nanmean(rtrajectory(:, :, cindex & Xk == true & Vk == 1), 3); 
         
         if isempty(cpath) == false
             plot(cpath(:, 1), cpath(:, 2), 'k', 'LineWidth', 2);
@@ -341,7 +342,7 @@ fig4 = figure;
 fig_set_position(fig4, 'All');
 
 subplot(1, 4, [1 2]);
-condition = Xk == 1;
+condition = Xk == 1 & Vk == 1;
 boxplot(frechet(condition), {Ck(condition) Ik(condition)}, 'factorseparator', 1, 'labels', num2cell(Ck(condition)), 'labelverbosity', 'minor');
 grid on;
 xlabel('Target');

@@ -1,6 +1,6 @@
 clearvars; clc; close all;
 
-sublist = {'ai6', 'ai7', 'ai8', 'aj1', 'aj3', 'aj4', 'aj7', 'aj8', 'aj9'};
+sublist = {'ai6', 'ai7', 'ai8', 'aj1', 'aj3', 'aj4', 'aj7', 'aj8', 'aj9',  'e8', 'ah7', 'ac7', 'b4'};
 
 pattern         = '_robot_records.mat';
 datapath        = 'analysis/robot/';
@@ -13,7 +13,7 @@ NumSubjects = length(sublist);
 % Create figure directory
 util_mkdir('./', figdir);
 
-Rk  = []; Ik  = []; Dk  = []; Tk  = []; Ck  = []; Sk  = []; Xk = [];
+Rk  = []; Ik  = []; Dk  = []; Tk  = []; Ck  = []; Sk  = []; Xk = []; Vk = [];
 rIk = []; rDk = []; rSk = []; rRk = [];
 cnumtrials = 0;
 cnumruns = 0;
@@ -24,6 +24,7 @@ for sId = 1:NumSubjects
     util_bdisp(['[io] - Importing records data for subject: ' csubject]); 
     
     cdata = load(cfilename);
+    cvalid = load([datapath csubject '_robot_valid.mat']);
     
     % Labels
     Rk  = cat(1, Rk,  cdata.records.trial.Rk + cnumruns);
@@ -32,6 +33,7 @@ for sId = 1:NumSubjects
     Dk  = cat(1, Dk,  cdata.records.trial.Dk);
     Ck  = cat(1, Ck,  cdata.records.trial.Ck);
     Xk  = cat(1, Xk,  cdata.records.trial.Xk);
+    Vk  = cat(1, Vk,  cvalid.Vk);
     Sk  = cat(1, Sk,  sId*ones(length(cdata.records.trial.Rk), 1));
     Tk  = cat(1, Tk,  cdata.records.trial.Tk + cnumtrials);
     cnumtrials = max(Tk);
@@ -55,7 +57,7 @@ NumTargets = length(Targets);
 rAccuracy = zeros(NumRuns, 1);
 for rId = 1:NumRuns
     
-    cindex = Rk == Runs(rId);
+    cindex = Rk == Runs(rId) & Vk == 1;
     rAccuracy(rId) = sum(Xk(cindex))./sum(cindex);  
 end
 
@@ -84,7 +86,7 @@ end
 tAccuracy = zeros(NumTargets, NumRuns);
 for rId = 1:NumRuns
     for tId = 1:NumTargets
-        cindex = Rk == Runs(rId) & Ck == Targets(tId);
+        cindex = Rk == Runs(rId) & Ck == Targets(tId)  & Vk == 1;
         tAccuracy(tId, rId) = sum(Xk(cindex))./sum(cindex);
     end
 end
@@ -110,7 +112,7 @@ xCk = []; xSk = []; xIk = [];
 for tgId = 1:NumTargets
     for sId = 1:NumSubjects
         for iId = 1:NumIntegrators
-           cindex = Sk == sId & Ik == iId & Ck == Targets(tgId);
+           cindex = Sk == sId & Ik == iId & Ck == Targets(tgId)  & Vk == 1;
            tsiAccuracy = cat(1, tsiAccuracy, sum(Xk(cindex))./sum(cindex));
            xCk = cat(1, xCk, tgId);
            xSk = cat(1, xSk, sId);
@@ -171,7 +173,7 @@ subplot(2, 4, 4);
 cavg = [mean(rAccuracy(rIk == 1)); mean(rAccuracy(rIk == 2))];
 cstd = [std(rAccuracy(rIk == 1))./sqrt(sum(rIk == 1)); std(rAccuracy(rIk == 2))./sqrt(sum(rIk == 2))];
 %errorbar(100*cavg, 100*cstd, 'o-');
-superbar(100*cavg, 'E',  100*cstd, 'ErrorbarStyle', 'T', 'BarWidth', 0.3, 'BarFaceColor', color, 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', .1, 'ErrorbarLineWidth', .1, 'P', [NaN PVal; PVal NaN], 'PStarThreshold', 0.06, 'PLineWidth', 0.5)
+superbar(100*cavg, 'E',  100*cstd, 'ErrorbarStyle', 'T', 'BarWidth', 0.3, 'BarFaceColor', color, 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', .1, 'ErrorbarLineWidth', .1, 'P', [NaN PVal; PVal NaN], 'PLineWidth', 0.5)
 xlim([0.5 2.5]);
 plot_hline(100/NumTargets, 'k--');
 set(gca, 'XTick', 1:2);

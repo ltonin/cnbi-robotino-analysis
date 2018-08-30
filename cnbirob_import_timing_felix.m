@@ -8,6 +8,8 @@ datapath    = ['/mnt/data/Research/' experiment '/' subject '_' experiment '/'];
 savedir     = 'analysis/robot/';
 
 TargetEvents = [26113 26114 26115 26116 26117];
+ResumeEvent = 25352;
+PauseEvent  = 25353;
 NumTargets = length(TargetEvents);
 SampleRate  = 512;
 Timeout = 60;
@@ -18,6 +20,9 @@ nfiles = length(files);
 % Create analysis directory
 util_mkdir('./', savedir);
 
+% Load record data to adjust task events
+util_bdisp('[io] - Loading record data to fix missing target events');
+record = load([savedir subject '_robot_records.mat']);
 
 timing = [];
 Ck = [];
@@ -41,15 +46,23 @@ for fId = 1:nfiles
     % Import the header of gdf file
     [~, h] = sload(cfile);
     
-    % Create index for the target events
-    disp('[proc] - Computing timing and labels');
-    cindex = false(length(h.EVENT.TYP), 1);
-    for tgId = 1:NumTargets
-        cindex = cindex | h.EVENT.TYP == TargetEvents(tgId);
+    % Create index for the target events (Felix subjects without task event)
+    disp('[proc] - Computing timing and labels');    
+    TrialStartId = h.EVENT.TYP == ResumeEvent;
+    TrialStopId  = h.EVENT.TYP == PauseEvent;
+    
+    if(sum(TrialStartId) ~= sum(TrialStopId))
+        error('chk:evt', 'Different number of trial start and stop');
     end
     
+    TrialDur = h.EVENT.POS(TrialStopId) - h.EVENT.POS(TrialStartId) + 1;
+    
+    % Getting the current trial tasks
+    ctrials = record.records.trial.Ck(record.records.trial.Rk == fId);
+    cntrials = length(ctrials);
+    
     % Concatenate target durations (timings)
-    timing = cat(1, timing, h.EVENT.DUR(cindex)/h.SampleRate);
+    timing = cat(1, timing, TrialDur/h.SampleRate);
     
     % Get file info from filename
     cinfo = util_getfile_info(cfile);
@@ -71,9 +84,9 @@ for fId = 1:nfiles
         Dl = cat(1, Dl, cinfo.date);
         lastday = cinfo.date;
     end
-    cntrials = sum(cindex);
     
-    Ck = cat(1, Ck, h.EVENT.TYP(cindex) - TargetEvents(1) + 1);
+    
+    Ck = cat(1, Ck, ctrials);
     Rk = cat(1, Rk, fId*ones(cntrials, 1));
     Ik = cat(1, Ik, cintegrator*ones(cntrials, 1));
     Dk = cat(1, Dk, currday*ones(cntrials, 1));
@@ -87,7 +100,7 @@ end
 util_bdisp('[proc] - Check the correctness of the imported trial sequence');
 TrialPerRun = 10;
 ExpectedNumTrials = nfiles*TrialPerRun;
-RealNumTrials = length(Rk);
+RealNumTrials = size(timing, 1);
 
 if(ExpectedNumTrials == RealNumTrials)
     disp('[proc] - Imported trials are correct');
@@ -118,8 +131,10 @@ else
             Ik = [Ik(1:22); Ik(25:end)];
             Dk = [Dk(1:22); Dk(25:end)];
             Yk = [Yk(1:22); Yk(25:end)];
+        case 'ah7'
+            timing = timing(2:end);
         case 'e8'
-            keyboard
+            timing = [timing(1:12); timing(14:45); timing(47:end)];
         otherwise
             error('chk:sbj', ['Unknown fixing rules for subject ' subject]);
     end

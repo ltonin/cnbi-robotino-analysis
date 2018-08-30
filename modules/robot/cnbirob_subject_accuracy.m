@@ -8,12 +8,15 @@ savedir  = 'analysis/robot/';
 %% Loading target record data
 load([datapath '/' subject '_robot_records.mat']); 
 
+%% Loading valid record data
+cdata = load([datapath '/' subject '_robot_valid.mat']); 
 
 Rk = records.trial.Rk;
 Ik = records.trial.Ik;
 Ck = records.trial.Ck;
 Xk = records.trial.Xk;
 Dk = records.trial.Dk;
+Vk = cdata.Vk;
 
 rIk = records.run.Ik;
 rDk = records.run.Dk;
@@ -34,7 +37,7 @@ NumRunIntegrators = NumRuns/NumIntegrators;
 %% Compute Total Accuracy per Integrator
 AccuracyIntegrator = zeros(NumIntegrators, 1);
 for iId = 1:NumIntegrators
-    cindex = Ik == Integrators(iId);
+    cindex = Ik == Integrators(iId) & Vk == 1;
     AccuracyIntegrator(iId) = sum(Xk(cindex))./sum(cindex);
 end
 
@@ -42,7 +45,7 @@ end
 AccuracyRun = zeros(NumRuns, 1);
 
 for rId = 1:NumRuns
-    cindex = Rk == Runs(rId);
+    cindex = Rk == Runs(rId)  & Vk == 1;
 
     caccuracy = sum(Xk(cindex))./sum(cindex);
     AccuracyRun(rId) = caccuracy;
@@ -52,7 +55,7 @@ end
 AccuracyTarget = zeros(NumTargets, NumRuns);
 for rId = 1:NumRuns
     for tId = 1:NumTargets
-        cindex = Ck == Targets(tId) & Rk == Runs(rId);
+        cindex = Ck == Targets(tId) & Rk == Runs(rId)  & Vk == 1;
         AccuracyTarget(tId, rId) = sum(Xk(cindex))./sum(cindex);
     end
 end

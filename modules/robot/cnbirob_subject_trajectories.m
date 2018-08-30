@@ -1,6 +1,6 @@
-% clearvars; clc;
-% 
-% subject = 'aj9';
+clearvars; clc;
+
+subject = 'e8';
 
 pattern         = [subject '*.online.mi.mi_bhbf.*.mobile'];
 datapath        = 'analysis/robot/tracking/';
@@ -16,7 +16,7 @@ TargetPos(4, :) = [662 362];
 TargetPos(5, :) = [750 150];
 TargetRadius    = 25;           % [cm]
 
-DoPlot = false;
+DoPlot = true;
 
 mTargetPos    = ceil(TargetPos/MapResolution);
 mTargetRadius = ceil(TargetRadius/MapResolution);
@@ -47,6 +47,11 @@ NumTargets      = length(Targets);
 util_bdisp('[proc] - Loading target record data');
 load(['analysis/robot/' subject '_robot_records.mat']); 
 Xk = records.trial.Xk;
+
+%% Loading valid data (<Timeout)
+util_bdisp('[proc] - Loading target record data');
+cdata = load(['analysis/robot/' subject '_robot_valid.mat']); 
+Vk = cdata.Vk;
 
 %% Loading manual trajectories
 util_bdisp('[proc] - Loading manual trajectory data');
@@ -127,6 +132,15 @@ for trId = 1:NumTrials
     if strcmpi(subject, 'ai6') && (trId == 21)
         disp(['[proc] - Skipping trial 21 for subject ' subject ' (nan values)']);
         continue
+    elseif strcmpi(subject, 'ah7') && (trId == 51)
+        disp(['[proc] - Skipping trial 51 for subject ' subject ' (nan values)']);
+        continue
+    elseif strcmpi(subject, 'ah7') && (trId == 52)
+        disp(['[proc] - Skipping trial 52 for subject ' subject ' (nan values)']);
+        continue
+    elseif strcmpi(subject, 'b4') && (trId <= 10)
+        disp(['[proc] - Skipping trial <=10 (first run) for subject ' subject ' (nan values)']);
+        continue
     end
     
     ctarget = Ck(trId); 
@@ -141,8 +155,8 @@ end
 util_bdisp('[proc] - Computing statistics');
 fdistance_pval = zeros(NumTargets, 1);
 for tgId = 1:NumTargets
-    cindex1 = Xk == 1 & Ik == 1 & Ck == tgId;
-    cindex2 = Xk == 1 & Ik == 2 & Ck == tgId;
+    cindex1 = Xk == 1 & Vk == 1 & Ik == 1 & Ck == tgId;
+    cindex2 = Xk == 1 & Vk == 1 & Ik == 2 & Ck == tgId;
     if sum(cindex1)==0 || sum(cindex2)==0
         disp(['[stat] - Skipping target ' Targets(tgId) ': no data available']);
         continue;
@@ -169,6 +183,7 @@ labels.trial.Dk  = Dk;
 labels.trial.Ck  = Ck;
 labels.trial.Tk  = Tk;
 labels.trial.Xk  = Xk;
+labels.trial.Vk  = Vk;
 save(filename, 'trajectory', 'mtrajectory', 'frechet', 'labels');
 
 %% Plotting
@@ -181,7 +196,7 @@ util_bdisp('[out] - Plotting subject trajectories');
 fig1 = figure;
 fig_set_position(fig1, 'Top');
 for iId = 1:NumIntegrators
-    cindex  = Ik == Integrators(iId);% & Xk == true;
+    cindex  = Ik == Integrators(iId);% & Xk == true & Vk == true;
     
     subplot(1, 2, iId);
     imagesc(flipud(nanmean(HitMap(:, :, cindex), 3)'), [0 0.1]);
@@ -191,7 +206,7 @@ for iId = 1:NumIntegrators
     for tgId = 1:NumTargets
         cindex = Ik == Integrators(iId) & Ck == Targets(tgId); 
         
-        cpath = nanmean(rtracking(:, :, cindex & Xk == true), 3); 
+        cpath = nanmean(rtracking(:, :, cindex & Xk == true & Vk == true), 3); 
         cpath(:, 2) = abs(cpath(:, 2) - FieldSize(2));
         cpath = ceil(cpath/MapResolution);
         if isempty(cpath) == false
@@ -233,7 +248,7 @@ for iId = 1:NumIntegrators
         imagesc(flipud(nanmean(HitMap(:, :, cindex), 3)'), [0 0.5]);
         
         hold on;
-        cpath = nanmean(rtracking(:, :, cindex & Xk == true), 3); 
+        cpath = nanmean(rtracking(:, :, cindex & Xk == true & Vk == true), 3); 
         cpath(:, 2) = abs(cpath(:, 2) - FieldSize(2));
         cpath = ceil(cpath/MapResolution);
         if isempty(cpath) == false
@@ -294,7 +309,7 @@ for iId = 1:NumIntegrators
     for tgId = 1:NumTargets
         cindex = Ik == Integrators(iId) & Ck == Targets(tgId); 
         
-        cpath = nanmean(rtracking(:, :, cindex & Xk == true), 3); 
+        cpath = nanmean(rtracking(:, :, cindex & Xk == true & Vk == true), 3); 
         
         if isempty(cpath) == false
             plot(cpath(:, 1), cpath(:, 2), 'ko', 'MarkerSize', 1);
@@ -333,7 +348,7 @@ end
 fig4 = figure;
 fig_set_position(fig4, 'Top');
 
-boxplot(fdistance(Xk == 1), {Ck(Xk == 1) Ik(Xk == 1)}, 'factorseparator', 1, 'labels', num2cell(Ck(Xk==1)), 'labelverbosity', 'minor');
+boxplot(fdistance(Xk == 1 & Vk == 1), {Ck(Xk == 1 & Vk == 1) Ik(Xk == 1 & Vk == 1)}, 'factorseparator', 1, 'labels', num2cell(Ck(Xk==1 & Vk == 1)), 'labelverbosity', 'minor');
 grid on;
 xlabel('Target');
 ylabel('[cm]');

@@ -1,6 +1,6 @@
 clearvars; clc;
 
-subject = 'ai7';
+subject = 'b4';
 
 pattern  = '*.online.mi.mi_bhbf.*.mobile.csv';
 folder   = 'tracking/trajectories';
@@ -43,6 +43,7 @@ for fId = 1:nfiles
     
     util_bdisp(['[out] - Saving the tracking in: ' cname]);
     save(cname, 'tracking', 'labels');
+    
 end
 
 

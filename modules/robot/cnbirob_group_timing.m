@@ -1,6 +1,6 @@
 clearvars; clc; close all;
 
-sublist = {'ai6', 'ai7', 'ai8', 'aj1', 'aj3', 'aj4', 'aj7', 'aj8', 'aj9'};
+sublist = {'ai6', 'ai7', 'ai8', 'aj1', 'aj3', 'aj4', 'aj7', 'aj8', 'aj9',  'e8', 'ah7', 'ac7', 'b4'};
 
 pattern  = '_robot_timing.mat';
 datapath = 'analysis/robot/';
@@ -13,7 +13,7 @@ NumSubjects = length(sublist);
 % Create figure directory
 util_mkdir('./', figdir);
 
-Rk  = []; Ik  = []; Dk  = []; Ck  = []; Sk  = []; Xk = []; Yk =[];
+Rk  = []; Ik  = []; Dk  = []; Ck  = []; Sk  = []; Xk = []; Yk =[]; Vk = [];
 timing = [];
 cnumruns = 0;
 for sId = 1:NumSubjects
@@ -30,6 +30,7 @@ for sId = 1:NumSubjects
     Dk  = cat(1, Dk,  cdata.labels.Dk);
     Ck  = cat(1, Ck,  cdata.labels.Ck);
     Xk  = cat(1, Xk,  cdata.labels.Xk);
+    Vk  = cat(1, Vk,  cdata.labels.Vk);
     Sk  = cat(1, Sk,  sId*ones(length(cdata.labels.Rk), 1));
     Yk  = cat(1, Yk,  cdata.labels.Yk);
     cnumruns = max(Rk);
@@ -64,7 +65,7 @@ end
 util_bdisp('[proc] - Computing average time per run (averaging targets)');
 AvgRunTime = zeros(NumRuns, 1);
 for rId = 1:NumRuns
-   cindex = Rk == Runs(rId) & Xk == 1;
+   cindex = Rk == Runs(rId) & Xk == 1 & Vk == 1;
    AvgRunTime(rId) = nanmean(timing(cindex));
 end
 
@@ -119,7 +120,7 @@ SteTargetTime = zeros(NumTargets, NumIntegrators);
 
 for cId = 1:NumTargets
    for iId = 1:NumIntegrators
-        cindex = Ck == Targets(cId) & Xk == 1 & Ik == Integrators(iId);
+        cindex = Ck == Targets(cId) & Xk == 1 & Ik == Integrators(iId) & Vk == 1;
         AvgTargetTime(cId, iId) = nanmean(timing(cindex));
         MedTargetTime(cId, iId) = nanmedian(timing(cindex));
         StdTargetTime(cId, iId) = nanstd(timing(cindex));
@@ -146,7 +147,7 @@ end
 
 % Statistical tests per target
 for cId = 1:NumTargets
-    cindex = Ck == Targets(cId) & Xk == 1;
+    cindex = Ck == Targets(cId) & Xk == 1  & Vk == 1;
     ranksum(timing(cindex & Ik == 1), timing(cindex & Ik == 2))
 end
 
@@ -198,7 +199,8 @@ fig2 = figure;
 fig_set_position(fig2, 'Top');
 
 subplot(1, 3, [1 2]);
-boxplot(timing(Xk==1), {Ck(Xk==1) Ik(Xk==1)}, 'factorseparator', 1, 'labels', num2cell(Ik(Xk==1)), 'labelverbosity', 'minor', 'labels', IntegratorName(Ik(Xk==1)));
+condition = Xk == 1  & Vk == 1;
+boxplot(timing(condition), {Ck(condition) Ik(condition)}, 'factorseparator', 1, 'labels', num2cell(Ik(condition)), 'labelverbosity', 'minor', 'labels', IntegratorName(Ik(condition)));
 grid on;
 ylabel('[s]');
 xlabel('Target')
@@ -207,7 +209,7 @@ ylim([10 80]);
 
 subplot(1, 3, 3);
 ctick = [0 pi/4 pi/2 3*pi/4 pi];
-polarplot(ctick', flipud(MedTargetTime), '-o');
+polarplot(ctick', flipud(AvgTargetTime), '-o');
 set(gca, 'ThetaLim', [0 180])
 set(gca, 'RTickLabel', {'0s'; '10s'; '20s'; '30s'})
 set(gca, 'ThetaTick', [0 45 90 135 180])
