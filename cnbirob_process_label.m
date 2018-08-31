@@ -1,6 +1,6 @@
-% clearvars; clc;
-% 
-% subject = 'ai7';
+clearvars; clc;
+
+subject = 'b4';
 
 pattern_gdf_imported = '_robot_timing.mat';
 pattern_rec_imported = '_robot_record.mat';
@@ -66,6 +66,9 @@ else
             Ck = Ck_rec;
             disp(['                   - Using Ck record labels for subject ' subject]);
          case 'aj9'
+            Ck = Ck_rec;
+            disp(['                   - Using Ck record labels for subject ' subject]);
+         case 'b4'
             Ck = Ck_rec;
             disp(['                   - Using Ck record labels for subject ' subject]);
     end

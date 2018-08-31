@@ -45,4 +45,3 @@ labels.raw.run.Ik = IntegratorType;
 labels.raw.run.Dk = DayId;
 
 save([savedir '/' subject '_robot_record.mat'], 'reached', 'labels');
-

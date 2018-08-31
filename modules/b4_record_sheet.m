@@ -15,7 +15,7 @@ Target(:, 3)   = [1 3 5 3 4 1 4 2 2 5];
 Reached(:, 3)  = [0 1 1 1 1 1 1 1 1 1];
 Target(:, 4)   = [5 4 4 2 3 1 5 2 3 1];
 Reached(:, 4)  = [0 1 1 1 1 1 1 1 1 1];
-Target(:, 5)   = [3 1 5 4 1 4 3 4 2 2];
+Target(:, 5)   = [3 1 5 4 1 5 3 4 2 2]; % Target(:, 5)   = [3 1 5 4 1 4 3 4 2 2];
 Reached(:, 5)  = [1 1 1 0 0 0 1 0 1 1];
 Target(:, 6)   = [1 1 4 5 4 3 2 2 5 3];
 Reached(:, 6)  = [1 1 1 1 1 1 1 1 1 1];
@@ -46,4 +46,3 @@ labels.raw.run.Ik = IntegratorType;
 labels.raw.run.Dk = DayId;
 
 save([savedir '/' subject '_robot_record.mat'], 'reached', 'labels');
-

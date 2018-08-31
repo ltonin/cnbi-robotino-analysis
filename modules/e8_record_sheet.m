@@ -45,3 +45,13 @@ labels.raw.run.Ik = IntegratorType;
 labels.raw.run.Dk = DayId;
 
 save([savedir '/' subject '_robot_record.mat'], 'reached', 'labels');
+
+a = zeros(5, 1);
+for t = 1:5
+    a(t) = sum(labels.raw.trial.Ck == t);
+end
+
+if(length(unique(a)) > 1)
+    keyboard
+end
+
