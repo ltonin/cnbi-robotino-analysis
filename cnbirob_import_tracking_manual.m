@@ -2,7 +2,7 @@ clearvars; clc;
 
 subject = '00';
 
-pattern  = '*.manual.csv';
+pattern  = '*.manual.ema.mobile.csv';
 folder   = 'tracking/trajectories';
 experiment  = 'micontinuous';
 datapath    = ['/mnt/data/Research/' experiment '/' subject '_' experiment '/'];
@@ -34,8 +34,8 @@ for fId = 1:nfiles
     
     % Re-arrange tracking data
     tracking  = [cdata{1} cdata{2}];
-    labels.raw.samples.Tk = cdata{3} + 1;
-    labels.raw.samples.Ck = cdata{4};
+    labels.raw.sample.Tk = cdata{3} + 1;
+    labels.raw.sample.Ck = cdata{4};
     
     % Saving tracking data
     [~, cname] = fileparts(cfile);

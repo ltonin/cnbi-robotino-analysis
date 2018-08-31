@@ -1,6 +1,6 @@
-clearvars; clc;
-
-subject = 'b4';
+% clearvars; clc;
+% 
+% subject = 'b4';
 
 pattern_gdf_imported = '_robot_timing.mat';
 pattern_rec_imported = '_robot_record.mat';
@@ -138,7 +138,11 @@ labels.trial.Dk = Dk;
 labels.trial.Ik = Ik;
 labels.trial.Tk = Tk;
 labels.trial.Yk = Yk;
-
+labels.sample.Rk = cdata_trk.labels.raw.sample.Rk;
+labels.sample.Ik = cdata_trk.labels.raw.sample.Ik;
+labels.sample.Dk = cdata_trk.labels.raw.sample.Dk;
+labels.sample.Tk = cdata_trk.labels.raw.sample.Tk;
+labels.sample.Ck = cdata_trk.labels.raw.sample.Ck;
 
 % Saving timing
 cfilename = fullfile(savedir, [subject '_robot_label.mat']);

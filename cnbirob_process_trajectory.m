@@ -2,7 +2,11 @@ clearvars; clc;
 
 subject = '00';
 
-pattern         = [subject '*.online.mi.mi_bhbf.*.mobile'];
+if strcmp(subject, '00')
+    pattern = [subject '*.online.manual.manual'];
+else
+    pattern = [subject '*.online.mi.mi_bhbf.*.mobile'];
+end
 datapath        = 'analysis/robot/tracking/';
 savedir         = 'analysis/robot/trajectory/';
 

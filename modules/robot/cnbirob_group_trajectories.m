@@ -1,9 +1,19 @@
 clearvars; clc; close all;
 
-sublist = {'ai6', 'ai7', 'ai8', 'aj1', 'aj3', 'aj4', 'aj7', 'aj8', 'aj9', 'e8', 'ah7', 'ac7', 'b4'};
+sublist = {'ai6', 'ai7', 'ai8', 'aj1', 'aj3', 'aj4', 'aj7', 'aj8', 'aj9', 'b4', 'ac7', 'ah7', 'e8'};
 
-pattern         = '_robot_trajectory.mat';
-datapath        = 'analysis/robot/';
+trajpattern     = '_robot_trajectory.mat';
+frechetpattern  = '_robot_frechet.mat';
+timepattern     = '_robot_timing.mat';
+labelpattern    = '_robot_label.mat';
+recordpattern   = '_robot_record.mat';
+trajpath        = 'analysis/robot/trajectory/';
+frechetpath     = 'analysis/robot/frechet/';
+timepath        = 'analysis/robot/timing/';
+labelpath       = 'analysis/robot/label/'; 
+recordpath      = 'analysis/robot/record/'; 
+manualpattern   = '00_robot_trajectory.mat';
+
 figdir   = 'figure/';
 
 % Create figure directory
@@ -22,6 +32,7 @@ TargetRadius    = 25;           % [cm]
 
 DoPlot = false;
 
+Timeout = 60;
 mTargetPos    = ceil(TargetPos/MapResolution);
 mTargetRadius = ceil(TargetRadius/MapResolution);
 mFieldSize    = ceil(FieldSize/MapResolution);
@@ -30,45 +41,58 @@ NumSubjects = length(sublist);
 
 trajectory = [];
 frechet    = [];
-
-Rk  = []; Ik  = []; Dk  = []; Tk  = []; Ck  = []; Sk  = []; Xk = []; Vk = [];
-sRk = []; sIk = []; sDk = []; sTk = []; sCk = []; sSk = [];
+timing     = [];
+Rk  = []; Ik  = []; Dk  = []; Ck  = []; Sk  = []; Xk = []; Yk =[]; Tk = [];
+sTk = [];
+cnumruns   = 0;
 cnumtrials = 0;
 
 for sId = 1:NumSubjects
     csubject  = sublist{sId};
-    cfilename = [datapath csubject pattern]; 
-    util_bdisp(['[io] - Importing trajectory data for subject: ' csubject]); 
+    cfilename_traj    = [trajpath csubject trajpattern]; 
+    cfilename_frechet = [frechetpath csubject frechetpattern]; 
+    cfilename_time    = [timepath csubject timepattern]; 
+    cfilename_label   = [labelpath csubject labelpattern]; 
+    cfilename_record  = [recordpath csubject recordpattern]; 
+    util_bdisp(['[io] - Importing  data for subject: ' csubject]); 
     
-    cdata = load(cfilename);
+    % Trajectory
+    cdata_traj = load(cfilename_traj);
+    trajectory = cat(1, trajectory, cdata_traj.trajectory);
     
-    ctraj = cdata.trajectory;
+    % Frechet
+    cdata_frechet = load(cfilename_frechet);
+    frechet = cat(1, frechet, cdata_frechet.frechet);
     
-    trajectory = cat(1, trajectory, ctraj);
+    % Timing
+    cdata_time = load(cfilename_time);
+    timing = cat(1, timing, cdata_time.timing);
     
-    frechet = cat(1, frechet, cdata.frechet);
-    
-    % Labels 
-    
-    sRk = cat(1, sRk, cdata.labels.sample.Rk);
-    sIk = cat(1, sIk, cdata.labels.sample.Ik);
-    sDk = cat(1, sDk, cdata.labels.sample.Dk);
-    sCk = cat(1, sCk, cdata.labels.sample.Ck);
-    sSk = cat(1, sSk, sId*ones(length(cdata.labels.sample.Rk), 1));
+    % Record
+    cdata_record = load(cfilename_record);
+    Xk  = cat(1, Xk,  cdata_record.reached);
 
-    Rk  = cat(1, Rk,  cdata.labels.trial.Rk);
-    Ik  = cat(1, Ik,  cdata.labels.trial.Ik);
-    Dk  = cat(1, Dk,  cdata.labels.trial.Dk);
-    Ck  = cat(1, Ck,  cdata.labels.trial.Ck);
-    Xk  = cat(1, Xk,  cdata.labels.trial.Xk);
-    Vk  = cat(1, Vk,  cdata.labels.trial.Vk);
-    Sk  = cat(1, Sk,  sId*ones(length(cdata.labels.trial.Rk), 1));
+    % Labels 
+    clabel  = load(cfilename_label);
     
-    sTk = cat(1, sTk, cdata.labels.sample.Tk + cnumtrials);
-    Tk  = cat(1, Tk,  cdata.labels.trial.Tk + cnumtrials);
+    Rk  = cat(1, Rk,  clabel.labels.trial.Rk + cnumruns);
+    Ik  = cat(1, Ik,  clabel.labels.trial.Ik);
+    Dk  = cat(1, Dk,  clabel.labels.trial.Dk);
+    Ck  = cat(1, Ck,  clabel.labels.trial.Ck);
+    Sk  = cat(1, Sk,  sId*ones(length(clabel.labels.trial.Rk), 1));
+    Yk  = cat(1, Yk,  clabel.labels.trial.Yk);
+    Tk  = cat(1, Tk,  clabel.labels.trial.Tk + cnumtrials);
+    
+    sTk = cat(1, sTk, clabel.labels.sample.Tk + cnumtrials);
+    cnumruns = max(Rk);
     cnumtrials = max(Tk);
 end
 
+Vk = timing < Timeout;
+ValidityCond = Vk & Xk; 
+
+Runs = unique(Rk);
+NumRuns = length(Runs);
 Integrators    = unique(Ik);
 NumIntegrators = length(Integrators);
 NumTrials      = length(Tk);
@@ -76,142 +100,351 @@ Targets        = unique(Ck);
 NumTargets     = length(Targets);
 Days           = unique(Dk);
 NumDays        = length(Days);
+Subjects       = unique(Sk);
+NumSubjects    = length(Subjects);
+RunPerInt      = unique(Yk);
+NumRunPerInt   = length(RunPerInt);
 
 %% Loading manual trajectories
 util_bdisp('[proc] - Loading manual trajectory data');
-manual = load('analysis/robot/00_robot_trajectory.mat'); 
+manual = load([trajpath manualpattern]); 
+mtrajectory = manual.trajectory;
+mCk = manual.labels.raw.sample.Ck;
 
 %% Create hit-map from trajectories
 util_bdisp('[proc] - Create hit-map from trajectories');
 HitMap = zeros([mFieldSize NumTrials]);
 
 for trId = 1:NumTrials
-    cindex = sTk == Tk(trId); 
+    cindex = sTk == trId; 
     HitMap(:, :, trId) = cnbirob_traj2map(trajectory(cindex, :), FieldSize, MapResolution);
 end
 
 %% Create resampled trajectories
 util_bdisp('[proc] - Create resampled trajectories');
-maxlength = 0;
+MaxLength = 0;
 for trId = 1:NumTrials
-    maxlength = max(maxlength, sum(sTk == Tk(trId)));
+    MaxLength = max(MaxLength, sum(sTk == trId));
 end
 
-rtrajectory = zeros(maxlength, 2, NumTrials);
+rtrajectory = nan(MaxLength, 2, NumTrials);
 for trId = 1:NumTrials
-    cindex = sTk == Tk(trId);
+    cindex = sTk == trId;
     clength = sum(cindex);
     cpath = trajectory(cindex, :);
-    rtrajectory(:, :, trId) =  interp1(1:clength, cpath, linspace(1, clength, maxlength));
-    
+    rtrajectory(:, :, trId) =  interp1(1:clength, cpath, linspace(1, clength, MaxLength));
 end
 
-%% Create resampled trajectories for manual
-util_bdisp('[proc] - Create resampled trajectories for manual');
-maxlength = 0;
-
-for trId = 1:max(manual.labels.trial.Tk)
-    maxlength = max(maxlength, sum(manual.labels.sample.Tk == manual.labels.trial.Tk(trId)));
-end
-
-ttracking = zeros(maxlength, 2, max(manual.labels.trial.Tk));
-for trId = 1:max(manual.labels.trial.Tk)
-    cindex = manual.labels.sample.Tk == manual.labels.trial.Tk(trId);
-    clength = sum(cindex);
-    cpath = manual.trajectory(cindex, :);
-    ttracking(:, :, trId) =  interp1(1:clength, cpath, linspace(1, clength, maxlength));
-    
-end
-
-mtracking = zeros(maxlength, 2, NumTargets);
-for tgId = 1:NumTargets
-    cindex = manual.labels.trial.Ck == Targets(tgId);
-    mtracking(:, :, tgId) = nanmean(ttracking(:, :, cindex), 3);
-end
-
-%% Find the minimum distance from target
-target_mindist = zeros(NumTrials, 1);
-target_maxdist = zeros(NumTrials, 1);
-for trId = 1:NumTrials
-   ctrgpos = TargetPos(Ck(trId), :);
-   ctraj = trajectory(sTk == trId, :);
-   cdistances = sqrt( (ctraj(:, 1) - ctrgpos(1)).^2 + (ctraj(:, 2) - ctrgpos(2)).^2); 
-   target_mindist(trId) = nanmin(cdistances);
-   target_maxdist(trId) = nanmax(cdistances);
-end
-
-%% Frechet distance evolution over days
-util_bdisp('[proc] - Computing evolution over days of Frechet distance');
-
-frechet_evo_avg = zeros(NumTargets, NumDays, NumIntegrators); 
-frechet_evo_std = zeros(NumTargets, NumDays, NumIntegrators); 
-npoints = zeros(NumTargets, NumDays, NumIntegrators); 
-for tgId = 1:NumTargets 
-    for dId = 1:NumDays
-        for iId = 1:NumIntegrators
-            cindex = Ck == Targets(tgId) & Xk == 1 & Vk == 1 & Dk == Days(dId) & Ik == iId; 
-            frechet_evo_avg(tgId, dId, iId) = nanmean(frechet(cindex)); 
-            frechet_evo_std(tgId, dId, iId) = nanstd(frechet(cindex)); 
-            npoints(tgId, dId, iId) = sum(cindex);
-        end
+%% Average Frechet per Run (per Target)
+rFrechet = [];
+rIk = []; rDk = []; rSk = []; rYk = []; rCk = [];
+for rId = 1:NumRuns
+    for cId = 1:NumTargets
+        cindex = Rk == Runs(rId) & Ck == Targets(cId); % & ValidityCond;
+        rFrechet = cat(1, rFrechet, nanmean(frechet(cindex)));
+        rIk = cat(1, rIk, unique(Ik(cindex)));
+        rDk = cat(1, rDk, unique(Dk(cindex)));
+        rSk = cat(1, rSk, unique(Sk(cindex)));
+        rYk = cat(1, rYk, unique(Yk(cindex)));
+        rCk = cat(1, rCk, unique(Ck(cindex)));
     end
 end
 
-%% Frechet distance per target
-AvgFrechetTarget = zeros(NumTargets, NumIntegrators);
-MedFrechetTarget = zeros(NumTargets, NumIntegrators);
-StdFrechetTarget = zeros(NumTargets, NumIntegrators);
-SteFrechetTarget = zeros(NumTargets, NumIntegrators);
-for cId = 1:NumTargets
-    for iId = 1:NumIntegrators
-        cindex = Ck == Targets(cId) & Ik == Integrators(iId) & Xk == 1 & Vk == 1;
-        AvgFrechetTarget(cId, iId) = nanmean(frechet(cindex));
-        MedFrechetTarget(cId, iId) = nanmedian(frechet(cindex));
-        StdFrechetTarget(cId, iId) = nanstd(frechet(cindex));
-        SteFrechetTarget(cId, iId) = nanstd(frechet(cindex))./sqrt(sum(cindex));
-    end
+
+
+%% Average Frechet per integrator
+util_bdisp('[proc] - Computing average frechet per integrator');
+FrechetIntAvg = nan(NumIntegrators, 1);
+FrechetIntMed = nan(NumIntegrators, 1);
+FrechetIntStd = nan(NumIntegrators, 1);
+FrechetIntSte = nan(NumIntegrators, 1);
+for iId = 1:NumIntegrators   
+    cindex = rIk == Integrators(iId);
+    FrechetIntAvg(iId) = nanmean(rFrechet(cindex));
+    FrechetIntMed(iId) = nanmedian(rFrechet(cindex));
+    FrechetIntStd(iId) = nanstd(rFrechet(cindex));
+    FrechetIntSte(iId) = nanstd(rFrechet(cindex))./sqrt(sum(cindex));
 end
 
-%% Statistics
-util_bdisp('[proc] - Computing statistics');
-frechet_pval = zeros(NumTargets, 1);
-for tgId = 1:NumTargets
-    frechet_pval(tgId) = ranksum(frechet(Xk == 1 & Vk == 1 & Ik == 1 & Ck == tgId), frechet(Xk == 1 & Vk ==1 & Ik == 2 & Ck == tgId));
-    
-    disp(['[stat] - Wilcoxon test on frechet distance for target ' num2str(tgId) ': p=' num2str(frechet_pval(tgId),3)]); 
-end
+%% Average Frechet per subject 
+util_bdisp('[proc] - Computing average frechet per integrator and per subject');
+FrechetSubAvg = nan(NumSubjects, NumIntegrators);
+FrechetSubMed = nan(NumSubjects, NumIntegrators);
+FrechetSubStd = nan(NumSubjects, NumIntegrators);
+FrechetSubSte = nan(NumSubjects, NumIntegrators);
 
-%% Plotting
-util_bdisp('[out] - Plotting trajectories');
-
-%% Figure 1 - Heat map average
-fig1 = figure;
-fig_set_position(fig1, 'Top');
 for iId = 1:NumIntegrators
-    cindex  = Ik == Integrators(iId);% & Xk == false;
+    for sId = 1:NumSubjects       
+        cindex = rIk == Integrators(iId) & rSk == Subjects(sId);
+        FrechetSubAvg(sId, iId) = nanmean(rFrechet(cindex));
+        FrechetSubMed(sId, iId) = nanmedian(rFrechet(cindex));
+        FrechetSubStd(sId, iId) = nanstd(rFrechet(cindex));
+        FrechetSubSte(sId, iId) = nanstd(rFrechet(cindex))./sqrt(sum(cindex));
+    end
+end
+
+%% Average Evolution Frechet 
+util_bdisp('[proc] - Computing average evolution frechet per integrator');
+FrechetEvoAvg = nan(NumRunPerInt, NumIntegrators);
+FrechetEvoMed = nan(NumRunPerInt, NumIntegrators);
+FrechetEvoStd = nan(NumRunPerInt, NumIntegrators);
+FrechetEvoSte = nan(NumRunPerInt, NumIntegrators);
+
+for iId = 1:NumIntegrators
+    for rId = 1:NumRunPerInt
+        cindex = rIk == Integrators(iId) & rYk == RunPerInt(rId);
+        FrechetEvoAvg(rId, iId) = nanmean(rFrechet(cindex));
+        FrechetEvoMed(rId, iId) = nanmedian(rFrechet(cindex));
+        FrechetEvoStd(rId, iId) = nanstd(rFrechet(cindex));
+        FrechetEvoSte(rId, iId) = nanstd(rFrechet(cindex))./sqrt(sum(cindex));
+    end
+end
+
+%% Average Frechet per Target
+FrechetTargetAvg = nan(NumTargets, NumIntegrators);
+FrechetTargetMed = nan(NumTargets, NumIntegrators);
+FrechetTargetStd = nan(NumTargets, NumIntegrators);
+FrechetTargetSte = nan(NumTargets, NumIntegrators);
+
+for cId = 1:NumTargets
+   for iId = 1:NumIntegrators
+        cindex = rCk == Targets(cId) & rIk == Integrators(iId);
+        FrechetTargetAvg(cId, iId) = nanmean(rFrechet(cindex));
+        FrechetTargetMed(cId, iId) = nanmedian(rFrechet(cindex));
+        FrechetTargetStd(cId, iId) = nanstd(rFrechet(cindex));
+        FrechetTargetSte(cId, iId) = nanstd(rFrechet(cindex))./sqrt(sum(cindex));
+   end
+end
+
+%% TRIAL BASED
+% %% Average Frechet per integrator
+% util_bdisp('[proc] - Computing average frechet per integrator');
+% FrechetIntAvg = zeros(NumIntegrators, 1);
+% FrechetIntMed = zeros(NumIntegrators, 1);
+% FrechetIntStd = zeros(NumIntegrators, 1);
+% FrechetIntSte = zeros(NumIntegrators, 1);
+% for iId = 1:NumIntegrators   
+%     cindex = Ik == Integrators(iId) & ValidityCond;
+%     FrechetIntAvg(iId) = nanmean(frechet(cindex));
+%     FrechetIntMed(iId) = nanmedian(frechet(cindex));
+%     FrechetIntStd(iId) = nanstd(frechet(cindex));
+%     FrechetIntSte(iId) = nanstd(frechet(cindex))./sqrt(sum(cindex));
+% end
+% 
+% %% Average Frechet per subject 
+% util_bdisp('[proc] - Computing average frechet per integrator and per subject');
+% FrechetSubAvg = zeros(NumSubjects, NumIntegrators);
+% FrechetSubMed = zeros(NumSubjects, NumIntegrators);
+% FrechetSubStd = zeros(NumSubjects, NumIntegrators);
+% FrechetSubSte = zeros(NumSubjects, NumIntegrators);
+% 
+% for iId = 1:NumIntegrators
+%     for sId = 1:NumSubjects       
+%         cindex = Ik == Integrators(iId) & Sk == Subjects(sId) & ValidityCond;
+%         FrechetSubAvg(sId, iId) = nanmean(frechet(cindex));
+%         FrechetSubMed(sId, iId) = nanmedian(frechet(cindex));
+%         FrechetSubStd(sId, iId) = nanstd(frechet(cindex));
+%         FrechetSubSte(sId, iId) = nanstd(frechet(cindex))./sqrt(sum(cindex));
+%     end
+% end
+% 
+% %% Average Evolution Frechet 
+% util_bdisp('[proc] - Computing average evolution frechet per integrator');
+% FrechetEvoAvg = nan(NumRunPerInt, NumIntegrators);
+% FrechetEvoMed = nan(NumRunPerInt, NumIntegrators);
+% FrechetEvoStd = nan(NumRunPerInt, NumIntegrators);
+% FrechetEvoSte = nan(NumRunPerInt, NumIntegrators);
+% 
+% for iId = 1:NumIntegrators
+%     for rId = 1:NumRunPerInt
+%         cindex = Ik == Integrators(iId) & Yk == RunPerInt(rId) & ValidityCond;
+%         FrechetEvoAvg(rId, iId) = nanmean(frechet(cindex));
+%         FrechetEvoMed(rId, iId) = nanmedian(frechet(cindex));
+%         FrechetEvoStd(rId, iId) = nanstd(frechet(cindex));
+%         FrechetEvoSte(rId, iId) = nanstd(frechet(cindex))./sqrt(sum(cindex));
+%     end
+% end
+% 
+% %% Average Frechet per Target
+% FrechetTargetAvg = zeros(NumTargets, NumIntegrators);
+% FrechetTargetMed = zeros(NumTargets, NumIntegrators);
+% FrechetTargetStd = zeros(NumTargets, NumIntegrators);
+% FrechetTargetSte = zeros(NumTargets, NumIntegrators);
+% 
+% for cId = 1:NumTargets
+%    for iId = 1:NumIntegrators
+%         cindex = Ck == Targets(cId) & Ik == Integrators(iId) & ValidityCond;
+%         FrechetTargetAvg(cId, iId) = nanmean(frechet(cindex));
+%         FrechetTargetMed(cId, iId) = nanmedian(frechet(cindex));
+%         FrechetTargetStd(cId, iId) = nanstd(frechet(cindex));
+%         FrechetTargetSte(cId, iId) = nanstd(frechet(cindex))./sqrt(sum(cindex));
+%    end
+% end
+
+% %% Statistical tests
+% % Statistical test per integrator
+% util_bdisp('[stat] - Statistical per integrator:');
+% cindex = ValidityCond;
+% PValIntRun = ranksum(frechet(cindex & Ik == 1), frechet(cindex & Ik == 2));
+% disp(['       - Significance between control modalities: p=' num2str(PValIntRun, 3)]);
+% 
+% % Statistical tests evolution over run
+% util_bdisp('[stat] - Statistical per run:');
+% PValEvoRun = zeros(NumRunPerInt, 1);
+% for rId = 1:NumRunPerInt
+%     cindex = Yk == RunPerInt(rId) & ValidityCond;
+%     PValEvoRun(rId) = ranksum(frechet(cindex & Ik == 1), frechet(cindex & Ik == 2));
+%     disp(['       - Significance between control modalities run ' num2str(rId) ' : p=' num2str(PValEvoRun(rId), 3)])
+% end
+% 
+% % Statistical tests per target
+% util_bdisp('[stat] - Statistical per Target:');
+% PValTarg = zeros(NumTargets, 1);
+% for cId = 1:NumTargets
+%     cindex = Ck == Targets(cId) & ValidityCond;
+%     PValTarg(cId) = ranksum(frechet(cindex & Ik == 1), frechet(cindex & Ik == 2));
+%     disp(['       - Significance between control modalities (Target ' num2str(cId) ') : p=' num2str(PValTarg(cId), 3)])
+% end
+% 
+% 
+% % Statistical tests per subject 
+% util_bdisp('[stat] - Statistical per subject:');
+% PValSubj = zeros(NumSubjects, 1);
+% for sId = 1:NumSubjects
+%     cindex = Sk == Subjects(sId) & ValidityCond;
+%     PValSubj(sId) = ranksum(frechet(cindex & Ik == 1), frechet(cindex & Ik == 2));
+%     disp(['       - Significance between control modalities (Subject ' sublist{sId} ') : p=' num2str(PValSubj(sId), 3)])
+% end
+
+%% Statistical tests
+% Statistical test per integrator
+util_bdisp('[stat] - Statistical per integrator:');
+PValIntRun = ranksum(rFrechet(rIk == 1), rFrechet(rIk == 2));
+disp(['       - Significance between control modalities: p=' num2str(PValIntRun, 3)]);
+
+% Statistical tests evolution over run
+util_bdisp('[stat] - Statistical per run:');
+PValEvoRun = zeros(NumRunPerInt, 1);
+for rId = 1:NumRunPerInt
+    cindex = rYk == RunPerInt(rId);
+    PValEvoRun(rId) = ranksum(rFrechet(cindex & rIk == 1), rFrechet(cindex & rIk == 2));
+    disp(['       - Significance between control modalities run ' num2str(rId) ' : p=' num2str(PValEvoRun(rId), 3)])
+end
+
+% Statistical tests per target
+util_bdisp('[stat] - Statistical per Target:');
+PValTarg = zeros(NumTargets, 1);
+for cId = 1:NumTargets
+    cindex = rCk == Targets(cId);
+    PValTarg(cId) = ranksum(rFrechet(cindex & rIk == 1), rFrechet(cindex & rIk == 2));
+    disp(['       - Significance between control modalities (Target ' num2str(cId) ') : p=' num2str(PValTarg(cId), 3)])
+end
+
+
+% Statistical tests per subject 
+util_bdisp('[stat] - Statistical per subject:');
+PValSubj = zeros(NumSubjects, 1);
+for sId = 1:NumSubjects
+    cindex = rSk == Subjects(sId);
+    PValSubj(sId) = ranksum(rFrechet(cindex & rIk == 1), rFrechet(cindex & rIk == 2));
+    disp(['       - Significance between control modalities (Subject ' sublist{sId} ') : p=' num2str(PValSubj(sId), 3)])
+end
+
+%% Plot
+
+fig1 = figure;
+fig_set_position(fig1, 'All');
+
+NumRows = 3;
+NumCols = 4;
+color = [0 0.4470 0.7410; 0.8500 0.3250 0.0980];
+
+% Average frechet per subject
+subplot(NumRows, NumCols, [1 2 3]);
+superbar(FrechetSubAvg, 'E', FrechetSubSte, 'BarFaceColor', reshape(color, [1 size(color)]), 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', .1, 'ErrorbarStyle', 'T', 'ErrorbarLineWidth', .1);
+grid on;
+%ylim([0 120]);
+set(gca, 'XTick', 1:NumSubjects);
+set(gca, 'XTickLabel', sublist);
+xlabel('Subject');
+ylabel('[cm]');
+title('Average frechet per subject (+/- SEM)');
+
+% Average frechet per integrator
+subplot(NumRows, NumCols, 4);
+superbar(FrechetIntAvg, 'E',  FrechetIntSte, 'ErrorbarStyle', 'T', 'BarWidth', 0.3, 'BarFaceColor', color, 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', .1, 'ErrorbarLineWidth', .1, 'P', [NaN PValIntRun; PValIntRun NaN], 'PLineWidth', 0.5, 'PStarThreshold', 0.06)
+xlim([0.5 2.5]);
+%ylim([0 120]);
+set(gca, 'XTick', 1:2);
+set(gca, 'XTickLabel', {'discrete', 'continuous'});
+xlabel('Modality');
+ylabel('[cm]');
+title('Average target frechet (+/- SEM)');
+grid on;
+
+
+% Average evolution accuracy per run
+subplot(NumRows, NumCols, NumCols + [1 2]);
+errorbar(FrechetEvoAvg, FrechetEvoSte, 'o-');
+xlim([0.5 5.5]);
+%ylim([0 120]);
+grid on;
+set(gca, 'XTick', 1:NumRunPerInt);
+ylabel('[cm]');
+xlabel('Run');
+title('Average frechet per run (+/- SEM)');
+
+% Average per target
+subplot(NumRows, NumCols, NumCols + [3 4]);
+ctick = [0 pi/4 pi/2 3*pi/4 pi];
+polarplot(ctick', flipud(FrechetTargetAvg), '-o');
+set(gca, 'ThetaLim', [0 180]);
+set(gca, 'ThetaTick', [0 45 90 135 180])
+set(gca, 'ThetaTickLabel', {'Target 5', 'Target 4', 'Target 3', 'Target 2', 'Target 1'})
+title('Average frechet per target');
+ax = gca;
+ax.RAxis.Label.String = '[cm]';
+
+% Distribution per target
+subplot(NumRows, NumCols, 2*NumCols + [1 2]);
+condition = ValidityCond;
+% boxplot(frechet(condition), {Ck(condition) Ik(condition)}, 'factorseparator', 1, 'labels', num2cell(Ik(condition)), 'labelverbosity', 'minor', 'labels', IntegratorName(Ik(condition)));
+boxplot(frechet, {Ck Ik}, 'factorseparator', 1, 'labels', num2cell(Ik), 'labelverbosity', 'minor', 'labels', IntegratorName(Ik));
+grid on;
+ylabel('[cm]');
+xlabel('Target')
+title('Distribution frechet per target');
+
+%% Maps plots - Trajectory maps
+fig2 = figure;
+fig_set_position(fig2, 'Top');
+
+NumRows = 1;
+NumCols = 2;
+for iId = 1:NumIntegrators
+    cindex  = Ik == Integrators(iId);% & ValidityCond;
     
-    subplot(1, 2, iId);
-    imagesc(flipud(mean(HitMap(:, :, cindex), 3)'), [0 0.1]);
+    subplot(NumRows, NumCols, iId);
+    imagesc(flipud(nanmean(HitMap(:, :, cindex), 3)'), [0 0.1]);
     
     % Plotting average for correct
     hold on;
-    for tgId = 1:NumTargets
-        cindex = Ik == Integrators(iId) & Ck == Targets(tgId) & Xk == true & Vk == 1;
+    for cId = 1:NumTargets
+        cindex = Ik == Integrators(iId) & Ck == Targets(cId) & ValidityCond;
         cpath = nanmean(rtrajectory(:, :, cindex), 3); 
         cpath = cpath/MapResolution;
         cpath(:, 2) = abs(cpath(:, 2) - mFieldSize(2));
         
         if isempty(cpath) == false
-            plot(cpath(:, 1), cpath(:, 2), 'ko', 'MarkerSize', 0.1);
+            plot(cpath(:, 1), cpath(:, 2), 'ko', 'MarkerSize', 1);
         end
         
     end
-    hold off;
     
-     % Plotting manual
-    hold on;
-    for tgId = 1:NumTargets
-        cpath = mtracking(:, :, tgId); 
+    % Plotting manual
+    for cId = 1:NumTargets
+        cindex = mCk == Targets(cId);
+        cpath = mtrajectory(cindex, :); 
         cpath(:, 2) = abs(cpath(:, 2) - FieldSize(2));
         cpath = cpath/MapResolution;
         if isempty(cpath) == false
@@ -230,28 +463,27 @@ for iId = 1:NumIntegrators
     set(gca, 'YTickLabel', '')
 end
 
-%% Figure 2 - Heat map average per target
-fig2 = figure;
-fig_set_position(fig2, 'All');
+%% Maps plots - Trajectory maps per target
+fig3 = figure;
+fig_set_position(fig3, 'All');
 for iId = 1:NumIntegrators
-    for tgId = 1:NumTargets
-        cindex = Ik == Integrators(iId)  & Ck == Targets(tgId) & Xk == true & Vk == 1;
+    for cId = 1:NumTargets
+        cindex = Ik == Integrators(iId)  & Ck == Targets(cId);% & ValidityCond;
         
-        subplot(2, NumTargets, tgId + NumTargets*(iId-1));
+        subplot(2, NumTargets, cId + NumTargets*(iId-1));
         imagesc(flipud(nanmean(HitMap(:, :, cindex), 3)'), [0 0.5]);
         
         hold on;
-        cpath = nanmean(rtrajectory(:, :, cindex & Xk == true & Vk == 1), 3); 
+        % Plotting average for correct
+        cpath = nanmean(rtrajectory(:, :, cindex  & ValidityCond), 3); 
         cpath(:, 2) = abs(cpath(:, 2) - FieldSize(2));
         cpath = cpath/MapResolution;
         if isempty(cpath) == false
-            plot(cpath(:, 1), cpath(:, 2), 'ko', 'MarkerSize', 0.01);
+            plot(cpath(:, 1), cpath(:, 2), 'ko', 'MarkerSize', 1);
         end
-        hold off;
         
         % Plotting manual
-        hold on;
-        cmpath = mtracking(:, :, tgId); 
+        cmpath = mtrajectory(mCk == Targets(cId), :); 
         cmpath(:, 2) = abs(cmpath(:, 2) - FieldSize(2));
         cmpath = cmpath/MapResolution;
         if isempty(cmpath) == false
@@ -262,21 +494,22 @@ for iId = 1:NumIntegrators
         axis image
         xlabel('[cm]');
         ylabel('[cm]');
-        title(TargetName{tgId});
+        title(TargetName{cId});
         cnbirob_draw_field(mTargetPos, mTargetRadius, mFieldSize, 'flipped', true)
         set(gca, 'XTickLabel', '')
         set(gca, 'YTickLabel', '')
     end
 end
 
-%% Fig 3
-fig3 = figure;
-fig_set_position(fig3, 'Top');
+%% Maps plots - Trajectory lines
+fig4 = figure;
+fig_set_position(fig4, 'Top');
 for iId = 1:NumIntegrators
-    subplot(1, NumIntegrators, iId);
+    subplot(NumRows, NumIntegrators, iId);
     
     hold on;
     
+    % Plotting all trajectory with different colors for correct and wrong
     for trId = 1:NumTrials
         cindex = Ik == Integrators(iId) & Tk == trId;
         
@@ -287,34 +520,28 @@ for iId = 1:NumIntegrators
         cpath = rtrajectory(:, :, cindex);
         
         cstyle = '.r';
-        if Xk(trId) == true
+        if ValidityCond(trId) == true
             cstyle = '.g';
         end
         
         plot(cpath(:, 1), cpath(:, 2), cstyle, 'MarkerSize', 0.01);
     end
     
-    hold off;
-    
-    hold on;
-    
     % Plotting average for correct
-    for tgId = 1:NumTargets
-        cindex = Ik == Integrators(iId) & Ck == Targets(tgId); 
+    for cId = 1:NumTargets
+        cindex = Ik == Integrators(iId) & Ck == Targets(cId); 
         
-        cpath = nanmean(rtrajectory(:, :, cindex & Xk == true & Vk == 1), 3); 
+        cpath = nanmean(rtrajectory(:, :, cindex & ValidityCond), 3); 
         
         if isempty(cpath) == false
             plot(cpath(:, 1), cpath(:, 2), 'k', 'LineWidth', 2);
         end
         
     end
-    hold off;
     
     % Plotting manual
-    hold on;
-    for tgId = 1:NumTargets
-        cpath = mtracking(:, :, tgId); 
+    for cId = 1:NumTargets
+        cpath = mtrajectory(mCk == Targets(cId), :); 
         
         if isempty(cpath) == false
             plot(cpath(:, 1), cpath(:, 2), 'k--', 'LineWidth', 1);
@@ -337,41 +564,20 @@ for iId = 1:NumIntegrators
     
 end
 
-%% Fig4
-fig4 = figure;
-fig_set_position(fig4, 'All');
-
-subplot(1, 4, [1 2]);
-condition = Xk == 1 & Vk == 1;
-boxplot(frechet(condition), {Ck(condition) Ik(condition)}, 'factorseparator', 1, 'labels', num2cell(Ck(condition)), 'labelverbosity', 'minor');
-grid on;
-xlabel('Target');
-ylabel('[cm]');
-title('Frechet distance per target');
-
-subplot(1, 4, [3 4]);
-ctick = [0 pi/4 pi/2 3*pi/4 pi];
-polarplot(ctick', flipud(MedFrechetTarget), '-o');
-set(gca, 'ThetaLim', [0 180])
-set(gca, 'RTickLabel', {'0cm'; '50cm'; '100cm'})
-set(gca, 'ThetaTick', [0 45 90 135 180])
-set(gca, 'ThetaTickLabel', {'Target 5', 'Target 4', 'Target 3', 'Target 2', 'Target 1'})
-title('Median frechet distance per target')
-
 %% Saving figures
-figfilename1 = [figdir '/group_trajectory_hitmap.pdf'];
+figfilename1 = [figdir '/group_trajectory_frechet.pdf'];
 util_bdisp(['[fig] - Saving figure in: ' figfilename1]);
 fig_figure2pdf(fig1, figfilename1) 
 
-figfilename2 = [figdir '/group_trajectory_hitmap_target.pdf'];
+figfilename2 = [figdir '/group_trajectory_hitmap.pdf'];
 util_bdisp(['[fig] - Saving figure in: ' figfilename2]);
 fig_figure2pdf(fig2, figfilename2) 
 
-figfilename3 = [figdir '/group_trajectory.pdf'];
+figfilename3 = [figdir '/group_trajectory_hitmap_target.pdf'];
 util_bdisp(['[fig] - Saving figure in: ' figfilename3]);
 fig_figure2pdf(fig3, figfilename3) 
 
-figfilename4 = [figdir '/group_trajectory_frechet.pdf'];
+figfilename4 = [figdir '/group_trajectory_lines.pdf'];
 util_bdisp(['[fig] - Saving figure in: ' figfilename4]);
 fig_figure2pdf(fig4, figfilename4) 
 

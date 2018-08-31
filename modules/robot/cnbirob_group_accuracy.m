@@ -66,7 +66,6 @@ Subjects = unique(Sk);
 Targets = unique(Ck);
 NumTargets = length(Targets);
 
-
 %% Accuracy per run (and labels)
 rIk = nan(NumRuns, 1);
 rDk = nan(NumRuns, 1);
@@ -82,8 +81,6 @@ for rId = 1:NumRuns
     rSk(rId) = unique(Sk(cindex));
     rYk(rId) = unique(Yk(cindex));
 end
-
-
 
 %% Mean/Median and std/ste per subject
 AccuracySubAvg = nan(NumSubjects, NumIntegrators);
@@ -216,15 +213,16 @@ subplot(NumRows, NumCols, NumCols + [3 4]);
 cavg = zeros(2, NumTargets);
 for tgId = 1:NumTargets 
     cindex = tCk == Targets(tgId);
-    cavg(:, tgId) = [mean(tAccuracy(cindex & tIk == 1)) mean(tAccuracy(cindex & tIk == 2))]; 
+    cavg(:, tgId) = 100*[mean(tAccuracy(cindex & tIk == 1)) mean(tAccuracy(cindex & tIk == 2))]; 
 end
 ctick = [0 pi/4 pi/2 3*pi/4 pi];
 polarplot(ctick', fliplr(cavg)', '-o');
 set(gca, 'ThetaLim', [0 180])
-set(gca, 'RTickLabel', {'0%'; '20%'; '40%'; '60%'; '80%'; '100%'})
 set(gca, 'ThetaTick', [0 45 90 135 180])
 set(gca, 'ThetaTickLabel', {'Target 5', 'Target 4', 'Target 3', 'Target 2', 'Target 1'})
-title('Average accuracy per target')
+title('Average accuracy per target');
+ax = gca;
+ax.RAxis.Label.String = '[%]';
 
 % Distribution per target
 subplot(NumRows, NumCols, 2*NumCols + [1 2]);
