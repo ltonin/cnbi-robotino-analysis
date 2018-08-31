@@ -436,7 +436,7 @@ for iId = 1:NumIntegrators
         cpath(:, 2) = abs(cpath(:, 2) - mFieldSize(2));
         
         if isempty(cpath) == false
-            plot(cpath(:, 1), cpath(:, 2), 'ko', 'MarkerSize', 1);
+            plot(cpath(:, 1), cpath(:, 2), 'k-', 'LineWidth', 1);
         end
         
     end
@@ -448,7 +448,7 @@ for iId = 1:NumIntegrators
         cpath(:, 2) = abs(cpath(:, 2) - FieldSize(2));
         cpath = cpath/MapResolution;
         if isempty(cpath) == false
-            plot(cpath(:, 1), cpath(:, 2), 'k--', 'MarkerSize', 1);
+            plot(cpath(:, 1), cpath(:, 2), 'k--', 'LineWidth', 1);
         end
         
     end
@@ -479,7 +479,7 @@ for iId = 1:NumIntegrators
         cpath(:, 2) = abs(cpath(:, 2) - FieldSize(2));
         cpath = cpath/MapResolution;
         if isempty(cpath) == false
-            plot(cpath(:, 1), cpath(:, 2), 'ko', 'MarkerSize', 1);
+            plot(cpath(:, 1), cpath(:, 2), 'k-', 'LineWidth', 1);
         end
         
         % Plotting manual
@@ -487,7 +487,7 @@ for iId = 1:NumIntegrators
         cmpath(:, 2) = abs(cmpath(:, 2) - FieldSize(2));
         cmpath = cmpath/MapResolution;
         if isempty(cmpath) == false
-            plot(cmpath(:, 1), cmpath(:, 2), 'k--', 'MarkerSize', 1);
+            plot(cmpath(:, 1), cmpath(:, 2), 'k--', 'LineWidth', 1);
         end
         hold off;
         
@@ -519,12 +519,12 @@ for iId = 1:NumIntegrators
         
         cpath = rtrajectory(:, :, cindex);
         
-        cstyle = '.r';
+        cstyle = 'r';
         if ValidityCond(trId) == true
-            cstyle = '.g';
+            cstyle = 'g';
         end
         
-        plot(cpath(:, 1), cpath(:, 2), cstyle, 'MarkerSize', 0.01);
+        h = plot(cpath(:, 1), cpath(:, 2), cstyle);
     end
     
     % Plotting average for correct
@@ -534,7 +534,7 @@ for iId = 1:NumIntegrators
         cpath = nanmean(rtrajectory(:, :, cindex & ValidityCond), 3); 
         
         if isempty(cpath) == false
-            plot(cpath(:, 1), cpath(:, 2), 'k', 'LineWidth', 2);
+            plot(cpath(:, 1), cpath(:, 2), 'k-', 'LineWidth', 2);
         end
         
     end
@@ -544,7 +544,7 @@ for iId = 1:NumIntegrators
         cpath = mtrajectory(mCk == Targets(cId), :); 
         
         if isempty(cpath) == false
-            plot(cpath(:, 1), cpath(:, 2), 'k--', 'LineWidth', 1);
+            plot(cpath(:, 1), cpath(:, 2), 'k--', 'LineWidth', 2);
         end
         
     end
