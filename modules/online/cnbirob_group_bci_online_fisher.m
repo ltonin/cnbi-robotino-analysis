@@ -12,8 +12,8 @@ NumSubjects = length(sublist);
 freqgrid  = 4:2:96;
 muband    = 6:14;
 betaband  = 16:28;
-muband_id   = intersect(freqgrid, muband);
-betaband_id = intersect(freqgrid, betaband);
+[~, muband_id]   = intersect(freqgrid, muband);
+[~, betaband_id] = intersect(freqgrid, betaband);
 % LocationIdx  = {[4 9 14]; [2 7 12 6 11 16]};
 LocationIdx  = {[4 9 14]; [2 7 12 6 11 16 3 8 13 5 10 15]};
 
