@@ -190,7 +190,6 @@ end
 
 
 %% Trial based epp
-
 MaxTrialLength = max(TrialEvents.DUR);
 EppTrial = nan(32, NumTrials);
 EppTrial_Fix = nan(48, NumTrials);
@@ -205,4 +204,17 @@ for trId = 1:NumTrials
     EppTrial_Fix(1:48, trId) = cepp_fix(1:48);
 end
 
+%% Data
+probability.raw = rpp;
+labels.sample.Ck = Ck;
+labels.sample.Rk = Rk;
+labels.sample.Ik = Ik;
+labels.sample.Dk = Dk;
+labels.sample.Yk = Yk;
+labels.sample.Fk = Fk;
+labels.sample.Tk = Tk;
+%% Saving data
+cfilename = fullfile(savedir, [subject '_bci_probability.mat']);
+util_bdisp(['[out] - Saving bci probability in ' cfilename]);
+save(cfilename, 'probability', 'labels');
 
