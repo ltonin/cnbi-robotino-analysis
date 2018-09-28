@@ -4,7 +4,7 @@ subject = 'aj1';
 
 pattern = '_bci_probability.mat';
 path    = 'analysis/bci/';
-
+figdir     = 'figure/';
 Ts = 1/16;
 TotalTime = 20;
 alpha = 0.03;
@@ -37,6 +37,8 @@ TaskDistribution = data.probability.raw(Ck == TaskEvent) - 0.5;
 FixDistribution = data.probability.raw(Fk == FixEvent) - 0.5;
 
 %% Plot responses
+fig = figure;
+fig_set_position(fig, 'All');
 
 subplot(2, 2, 1);
 rnd_task_idx = randi(length(t), length(t), 1);
@@ -86,3 +88,8 @@ ylim([0 max(bincount)+10]);
 hold off
 grid on;
 title('Fixation distribution');
+
+%% Save figure
+filename = [figdir '/' subject '_control_exponential_smoothing.pdf'];
+util_bdisp(['Saving figure in ' filename]);
+fig_figure2pdf(fig, filename);
