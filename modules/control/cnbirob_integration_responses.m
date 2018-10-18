@@ -36,6 +36,46 @@ Fk = data.labels.sample.Fk;
 TaskDistribution = data.probability.raw(Ck == TaskEvent) - 0.5;
 FixDistribution = data.probability.raw(Fk == FixEvent) - 0.5;
 
+%% Random simulation
+NSimulations = 10000;
+TaskSim = zeros(length(t), NSimulations);
+RestSim = zeros(length(t), NSimulations);
+for i = 1:NSimulations
+    rnd_task_idx = randi(length(t), length(t), 1);
+    TaskSim(:, i) = lsim(H, TaskDistribution(rnd_task_idx), t);
+    
+    rnd_fix_idx = randi(length(t), length(t), 1);
+    RestSim(:, i) = lsim(H, FixDistribution(rnd_fix_idx), t);
+end
+
+%% First crossing threshold
+FirstCrossingRest = nan(NSimulations, 1);
+FirstCrossingTask = nan(NSimulations, 1);
+
+for i = 1:NSimulations
+    cfirstcross_task = find(TaskSim(:, i) >= threshold, 1, 'first');
+    if isempty(cfirstcross_task) == false
+     FirstCrossingTask(i) = cfirstcross_task;
+    end
+    
+    cfirstcross_rest = find(RestSim(:, i) >= threshold, 1, 'first');
+    if isempty(cfirstcross_rest) == false
+        FirstCrossingRest(i) = cfirstcross_rest;
+    end
+end
+
+%% Average crossing threshold
+RestCrossingAvg = nanmean(t(FirstCrossingRest(isnan(FirstCrossingRest) == false)));
+RestCrossingStd = nanstd(t(FirstCrossingRest(isnan(FirstCrossingRest) == false)));
+
+TaskCrossingAvg = nanmean(t(FirstCrossingTask(isnan(FirstCrossingTask) == false)));
+TaskCrossingStd = nanstd(t(FirstCrossingTask(isnan(FirstCrossingTask) == false)));
+
+util_bdisp(['[out] + Average crossing threshold (' num2str(threshold) '):']);
+disp(['      |- During task: ' num2str(TaskCrossingAvg, 3) ' +/- ' num2str(TaskCrossingStd) ' s']);
+disp(['      |- During rest: ' num2str(RestCrossingAvg, 3) ' +/- ' num2str(RestCrossingStd) ' s']);
+      
+
 %% Plot responses
 fig = figure;
 fig_set_position(fig, 'All');
