@@ -108,17 +108,17 @@ fig_set_position(fig1, 'Top');
 
 NumRows = 1;
 NumCols = 3;
-color = [0 0.4470 0.7410; 0.8500 0.3250 0.0980];
+color = [0 0 0; 0 0.4470 0.7410; 0.8500 0.3250 0.0980];
 
 % Overall accuracy
 subplot(NumRows, NumCols, 1);
-cavg = [mean(Accuracy(rIk == 1)); mean(Accuracy(rIk == 2))];
-cstd = [std(Accuracy(rIk == 1))./sqrt(sum(rIk == 1)); std(Accuracy(rIk == 2))./sqrt(sum(rIk == 2))];
-superbar(100*cavg, 'E',  100*cstd, 'ErrorbarStyle', 'T', 'BarWidth', 0.3, 'BarFaceColor', color, 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', .1, 'ErrorbarLineWidth', .1, 'P', [NaN AccPVal; AccPVal NaN], 'PLineWidth', 0.5)
-xlim([0.5 2.5]);
+cavg = [mean(Accuracy); mean(Accuracy(rIk == 1)); mean(Accuracy(rIk == 2))];
+cstd = [std(Accuracy)./sqrt(length(Accuracy)); std(Accuracy(rIk == 1))./sqrt(sum(rIk == 1)); std(Accuracy(rIk == 2))./sqrt(sum(rIk == 2))];
+superbar(100*cavg, 'E',  100*cstd, 'ErrorbarStyle', 'T', 'BarWidth', 0.3, 'BarFaceColor', color, 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', .1, 'ErrorbarLineWidth', .1, 'P', [NaN NaN NaN; NaN NaN AccPVal; NaN AccPVal NaN], 'PLineWidth', 0.5)
+xlim([0.5 3.5]);
 ylim([0 120]);
-set(gca, 'XTick', 1:2);
-set(gca, 'XTickLabel', {'discrete', 'continuous'});
+set(gca, 'XTick', 1:3);
+set(gca, 'XTickLabel', {'overall', 'discrete', 'continuous'});
 xlabel('Modality');
 ylabel('[%]');
 title('Average accuracy (+/- SEM)');

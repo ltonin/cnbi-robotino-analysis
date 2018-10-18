@@ -111,17 +111,17 @@ fig_set_position(fig1, 'Top');
 
 NumRows = 1;
 NumCols = 3;
-color = [0 0.4470 0.7410; 0.8500 0.3250 0.0980];
+color = [0 0 0; 0 0.4470 0.7410; 0.8500 0.3250 0.0980];
 
 % Overall duration
 subplot(NumRows, NumCols, 1);
-cavg = [mean(Duration(rIk == 1)); mean(Duration(rIk == 2))];
-cstd = [std(Duration(rIk == 1))./sqrt(sum(rIk == 1)); std(Duration(rIk == 2))./sqrt(sum(rIk == 2))];
-superbar(cavg, 'E', cstd, 'ErrorbarStyle', 'T', 'BarWidth', 0.3, 'BarFaceColor', color, 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', .1, 'ErrorbarLineWidth', .1, 'P', [NaN DurPVal; DurPVal NaN], 'PLineWidth', 0.5)
-xlim([0.5 2.5]);
+cavg = [mean(Duration); mean(Duration(rIk == 1)); mean(Duration(rIk == 2))];
+cstd = [std(Duration)./sqrt(length(Duration)); std(Duration(rIk == 1))./sqrt(sum(rIk == 1)); std(Duration(rIk == 2))./sqrt(sum(rIk == 2))];
+superbar(cavg, 'E', cstd, 'ErrorbarStyle', 'T', 'BarWidth', 0.3, 'BarFaceColor', color, 'BarEdgeColor', [.4 .4 .4], 'BarLineWidth', .1, 'ErrorbarLineWidth', .1, 'P', [NaN NaN NaN; NaN NaN DurPVal; NaN DurPVal NaN], 'PLineWidth', 0.5)
+xlim([0.5 3.5]);
 ylim([0 7]);
-set(gca, 'XTick', 1:2);
-set(gca, 'XTickLabel', {'discrete', 'continuous'});
+set(gca, 'XTick', 1:3);
+set(gca, 'XTickLabel', {'overall', 'discrete', 'continuous'});
 xlabel('Modality');
 ylabel('[s]');
 title('Average duration (+/- SEM)');

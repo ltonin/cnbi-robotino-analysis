@@ -1,6 +1,6 @@
-clearvars; clc;
-
-subject = 'aj1';
+% clearvars; clc;
+% 
+% subject = 'aj1';
 
 pattern   = [subject '*.online.mi.mi_bhbf'];
 datapath    = 'analysis/psd/laplacian/';
@@ -116,6 +116,11 @@ for fId = 1:nfiles
         
 end
 
+if(isempty(psd))
+    util_bdisp(['[Warning] - No pure online files for subject ' subject '. Returning']);
+    return
+end
+
 events.TYP = TYP;
 events.POS = POS;
 events.DUR = DUR;
@@ -163,46 +168,46 @@ for sId = 1:NumSamples
     [~, rpp(sId, :)] = gauClassifier(GauClassifier.M, GauClassifier.C, F(sId, FeatureIdx));
 end
 
-%% Exponential smoothing
-rejection = 0.55;
-alpha = 0.03;
-epp = 0.5*ones(NumSamples, 1);
-
-for sId = 2:NumSamples
-    crpp = rpp(sId, 1);
-    pepp = epp(sId-1);
-    
-    % Reset
-    if ismember(sId, TrialEvents.POS) == true
-        epp(sId) = 0.5;
-        continue;
-    end
-    
-    % Rejection
-    if(crpp <= rejection && crpp >= (1 - rejection))
-        crpp = pepp;
-    end
-    
-    % Integration
-    epp(sId) = alpha.*crpp + (1-alpha).*pepp;
-    
-end
-
-
-%% Trial based epp
-MaxTrialLength = max(TrialEvents.DUR);
-EppTrial = nan(32, NumTrials);
-EppTrial_Fix = nan(48, NumTrials);
-for trId = 1:NumTrials
-    cepp = epp(Tk == trId);
-    EppTrial(1:32, trId) = cepp(1:32);
-
-    
-    cstart = FixEvents.POS(trId);
-    cstop  = cstart + FixEvents.DUR(trId) -1;
-    cepp_fix = epp(cstart:cstart+48-1);
-    EppTrial_Fix(1:48, trId) = cepp_fix(1:48);
-end
+% %% Exponential smoothing
+% rejection = 0.55;
+% alpha = 0.03;
+% epp = 0.5*ones(NumSamples, 1);
+% 
+% for sId = 2:NumSamples
+%     crpp = rpp(sId, 1);
+%     pepp = epp(sId-1);
+%     
+%     % Reset
+%     if ismember(sId, TrialEvents.POS) == true
+%         epp(sId) = 0.5;
+%         continue;
+%     end
+%     
+%     % Rejection
+%     if(crpp <= rejection && crpp >= (1 - rejection))
+%         crpp = pepp;
+%     end
+%     
+%     % Integration
+%     epp(sId) = alpha.*crpp + (1-alpha).*pepp;
+%     
+% end
+% 
+% 
+% %% Trial based epp
+% MaxTrialLength = max(TrialEvents.DUR);
+% EppTrial = nan(32, NumTrials);
+% EppTrial_Fix = nan(48, NumTrials);
+% for trId = 1:NumTrials
+%     cepp = epp(Tk == trId);
+%     EppTrial(1:32, trId) = cepp(1:32);
+% 
+%     
+%     cstart = FixEvents.POS(trId);
+%     cstop  = cstart + FixEvents.DUR(trId) -1;
+%     cepp_fix = epp(cstart:cstart+48-1);
+%     EppTrial_Fix(1:48, trId) = cepp_fix(1:48);
+% end
 
 %% Data
 probability.raw = rpp;
@@ -216,5 +221,5 @@ labels.sample.Tk = Tk;
 %% Saving data
 cfilename = fullfile(savedir, [subject '_bci_probability.mat']);
 util_bdisp(['[out] - Saving bci probability in ' cfilename]);
-save(cfilename, 'probability', 'labels');
+save(cfilename, 'probability', 'labels', 'events');
 
