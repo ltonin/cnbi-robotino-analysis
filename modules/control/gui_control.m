@@ -22,7 +22,7 @@ function varargout = gui_control(varargin)
 
 % Edit the above text to modify the response to help gui_control
 
-% Last Modified by GUIDE v2.5 11-Nov-2018 19:18:44
+% Last Modified by GUIDE v2.5 29-Nov-2018 14:35:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -71,6 +71,9 @@ plot_control_potential(handles);
 
 set(handles.slider_param_psi, 'Value', handles.control.parameters.psi);
 set(handles.param_psi, 'String', num2str(handles.control.parameters.psi, '%4.2f'));
+
+set(handles.slider_param_omega, 'Value', handles.control.parameters.omega);
+set(handles.param_omega, 'String', num2str(handles.control.parameters.omega, '%4.2f'));
 % 
 % x = 0:.01:2*pi;
 % y = sin(x);
@@ -179,7 +182,7 @@ function plot_control_force(handles)
 
     h = handles.free_force;
     cla(h);
-    x = 0:0.01:1;
+    x = 0:0.001:1;
     support.forcefree.omega  = handles.control.parameters.omega;
     support.forcefree.psi    = handles.control.parameters.psi; 
     Ffree = ctrl_integrator_dynamic_forcefree(x, support.forcefree);
@@ -205,7 +208,7 @@ function plot_control_potential(handles)
     
     h = handles.free_potential;
     cla(h);
-    x = 0:0.01:1;
+    x = 0:0.001:1;
     support.forcefree.omega  = handles.control.parameters.omega;
     support.forcefree.psi    = handles.control.parameters.psi; 
     Ffree = ctrl_integrator_dynamic_forcefree(x, support.forcefree);
@@ -214,7 +217,8 @@ function plot_control_potential(handles)
     axes(h);
     plot(x, Pfree);
     grid on;
-    ylim([0 16]);
+    %ylim([0 16]);
+    xlim([0 1]);
     xlabel('y');
     ylabel('U_{free}');
     title('Free Potential'); 
@@ -257,6 +261,7 @@ prob = [0.5 0.5];
             handles.scope.reset_task = false;
         end
         
+        support.forcefree.omega = handles.control.parameters.omega; 
         support.forcefree.psi = handles.control.parameters.psi; 
         
         prob(2) = data(randi(length(data), 1));
@@ -287,4 +292,37 @@ prob = [0.5 0.5];
         guidata(hObject, handles);
         pause(0.0625); 
     end
+end
+
+
+% --- Executes on slider movement.
+function slider_param_omega_Callback(hObject, eventdata, handles)
+% hObject    handle to slider_param_omega (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+sliderValue = round(get(hObject,'Value')*100)/100;
+set(hObject, 'Value', sliderValue);
+
+handles.control.parameters.omega = sliderValue;
+set(handles.param_omega, 'String', num2str(handles.control.parameters.omega, '%4.2f'));
+guidata(hObject, handles);
+
+plot_control_force(handles);
+plot_control_potential(handles);
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function slider_param_omega_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider_param_omega (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
 end
